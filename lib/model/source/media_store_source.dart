@@ -12,6 +12,7 @@ import 'package:aves/model/source/analysis_controller.dart';
 import 'package:aves/model/source/collection_source.dart';
 import 'package:aves/model/vaults/vaults.dart';
 import 'package:aves/services/common/services.dart';
+import 'package:aves/sftp/sftp_media_service.dart';
 import 'package:aves/theme/durations.dart';
 import 'package:aves/utils/android_file_utils.dart';
 import 'package:aves/utils/debouncer.dart';
@@ -70,6 +71,7 @@ class MediaStoreSource extends CollectionSource {
     tagGrouping.registerSource(this);
     await covers.init();
     await dynamicAlbums.init();
+    await sftpMediaService.init();
 
     final deviceOffset = DateTime.now().timeZoneOffset.inMilliseconds;
     final catalogOffset = settings.catalogTimeZoneOffsetMillis;
@@ -137,6 +139,7 @@ class MediaStoreSource extends CollectionSource {
     notifyAlbumsChanged();
 
     await _loadVaultEntries(scopeDirectory);
+    await _loadSftpEntries(scopeDirectory);
 
     debugPrint('$runtimeType load ${stopwatch.elapsed} load metadata');
     if (scopeDirectory != null) {
@@ -433,6 +436,14 @@ class MediaStoreSource extends CollectionSource {
 
   Future<void> _loadVaultEntries(String? directory) async {
     addEntries(await localMediaDb.loadEntries(origin: EntryOrigins.vault, directory: directory));
+  }
+
+  // sftp
+
+  Future<void> _loadSftpEntries(String? directory) async {
+    final entries = await localMediaDb.loadEntries(origin: EntryOrigins.sftp, directory: directory);
+    sftpMediaService.registerEntries(entries);
+    addEntries(entries);
   }
 
   Future<void> _refreshVaultEntries({

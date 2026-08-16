@@ -25,10 +25,10 @@ workspace:
   - plugins/aves_map
   - plugins/aves_model
   - plugins/aves_report
-  - plugins/aves_report_crashlytics
+  - plugins/aves_report_console
   - plugins/aves_screen_state
   - plugins/aves_services
-  - plugins/aves_services_google
+  - plugins/aves_services_none
   - plugins/aves_ui
   - plugins/aves_utils
   - plugins/aves_video
@@ -50,13 +50,13 @@ dependencies:
   aves_report:
     path: plugins/aves_report
   aves_report_platform:
-    path: plugins/aves_report_crashlytics
+    path: plugins/aves_report_console
   aves_screen_state:
     path: plugins/aves_screen_state
   aves_services:
     path: plugins/aves_services
   aves_services_platform:
-    path: plugins/aves_services_google
+    path: plugins/aves_services_none
   aves_video:
     path: plugins/aves_video
   #  aves_video_exo:
@@ -75,7 +75,12 @@ dependencies:
       path: community_charts_flutter
   connectivity_plus:
   country_code:
+  crypto:
   csv:
+  dartssh2:
+    git:
+      url: https://github.com/DeadBranches-Agent/dartssh2.git
+      ref: claude/aves-sftp-image-source-4px7wz
   decorated_icon:
   device_info_plus:
   dlna_dart:

@@ -57,6 +57,7 @@ class AIcons {
   static const sensorControlEnabled = Symbols.explore;
   static const sensorControlDisabled = Symbols.explore_off;
   static const settings = Symbols.settings;
+  static const sftp = Symbols.cloud;
   static const shooting = Symbols.camera;
   static const size = Symbols.data_usage;
   static const storageCard = Symbols.sd_storage;

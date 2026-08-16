@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:aves/services/storage_service.dart';
 import 'package:aves_model/aves_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/fake.dart';
 
 class FakeStorageService extends Fake implements StorageService {
@@ -35,4 +38,7 @@ class FakeStorageService extends Fake implements StorageService {
 
   @override
   Future<String> getVaultRoot() => SynchronousFuture('/vault/');
+
+  @override
+  Future<String> getInternalCacheDirectory() async => (await Directory(p.join(Directory.systemTemp.path, 'aves_test_cache')).create(recursive: true)).path;
 }

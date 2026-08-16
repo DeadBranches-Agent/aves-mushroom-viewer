@@ -11,6 +11,7 @@ import 'package:aves/widgets/settings/privacy/privacy.dart';
 import 'package:aves/widgets/settings/settings_definition.dart';
 import 'package:aves/widgets/settings/settings_mobile_page.dart';
 import 'package:aves/widgets/settings/settings_tv_page.dart';
+import 'package:aves/widgets/settings/sftp/sftp.dart';
 import 'package:aves/widgets/settings/thumbnails/thumbnails.dart';
 import 'package:aves/widgets/settings/video/video.dart';
 import 'package:aves/widgets/settings/viewer/viewer.dart';
@@ -28,6 +29,7 @@ class SettingsPage extends StatelessWidget {
     ViewerSection(),
     VideoSection(),
     PrivacySection(),
+    SftpSection(),
     AccessibilitySection(),
     DisplaySection(),
     LanguageSection(),

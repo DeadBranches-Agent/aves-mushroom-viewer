@@ -11,6 +11,7 @@ import 'package:aves/services/common/decoding.dart';
 import 'package:aves/services/common/output_buffer.dart';
 import 'package:aves/services/common/service_policy.dart';
 import 'package:aves/services/common/services.dart';
+import 'package:aves/sftp/sftp_media_service.dart';
 import 'package:aves_report/aves_report.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
@@ -181,6 +182,10 @@ class PlatformMediaFetchService implements MediaFetchService {
 
   @override
   Future<Uint8List> getOriginalBytes(AvesEntry entry) async {
+    if (SftpMediaService.isSftpUri(entry.uri)) {
+      return sftpMediaService.getFullBytes(entry);
+    }
+
     final request = ImageRequest(
       entry.uri,
       entry.mimeType,
@@ -213,6 +218,21 @@ class PlatformMediaFetchService implements MediaFetchService {
     required ImageRequest request,
     required ImageDecoderCallback decode,
   }) async {
+    if (SftpMediaService.isSftpUri(request.uri)) {
+      // materialize the original bytes to an app-private cache file,
+      // then let the regular platform pipeline decode from it
+      final localUri = await sftpMediaService.localUriForRequest(request.uri, onBytesReceived: request.onBytesReceived);
+      request = ImageRequest(
+        localUri,
+        request.mimeType,
+        rotationDegrees: request.rotationDegrees,
+        isFlipped: request.isFlipped,
+        isAnimated: request.isAnimated,
+        pageId: request.pageId,
+        sizeBytes: request.sizeBytes,
+      );
+    }
+
     final args = _requestToArgs(request, decoded: decoded);
     final bytes = await _getBytes(
       mimeType: request.mimeType,
@@ -230,7 +250,22 @@ class PlatformMediaFetchService implements MediaFetchService {
     required ImageDecoderCallback decode,
     Object? taskKey,
     int? priority,
-  }) {
+  }) async {
+    if (SftpMediaService.isSftpUri(request.uri)) {
+      final localUri = await sftpMediaService.localUriForRequest(request.uri);
+      request = RegionProviderKey(
+        uri: localUri,
+        mimeType: request.mimeType,
+        pageId: request.pageId,
+        sizeBytes: request.sizeBytes,
+        rotationDegrees: request.rotationDegrees,
+        isFlipped: request.isFlipped,
+        sampleSize: request.sampleSize,
+        regionRect: request.regionRect,
+        imageSize: request.imageSize,
+      );
+    }
+
     final args = <String, Object?>{
       'op': 'getRegion',
       'decoded': decoded,
@@ -268,6 +303,10 @@ class PlatformMediaFetchService implements MediaFetchService {
     Object? taskKey,
     int? priority,
   }) {
+    if (SftpMediaService.isSftpUri(request.uri)) {
+      return sftpMediaService.getThumbnail(request: request, decode: decode, taskKey: taskKey);
+    }
+
     final uri = request.uri;
     final mimeType = request.mimeType;
     final extentDip = request.extent;
@@ -344,10 +383,14 @@ class PlatformMediaFetchService implements MediaFetchService {
   bool cancelRegion(Object taskKey) => servicePolicy.pause(taskKey, [ServiceCallPriority.getRegion]);
 
   @override
-  bool cancelThumbnail(Object taskKey) => servicePolicy.pause(taskKey, [ServiceCallPriority.getFastThumbnail, ServiceCallPriority.getSizedThumbnail]);
+  bool cancelThumbnail(Object taskKey) =>
+      sftpMediaService.cancelThumbnail(taskKey) || servicePolicy.pause(taskKey, [ServiceCallPriority.getFastThumbnail, ServiceCallPriority.getSizedThumbnail]);
 
   @override
-  Future<T>? resumeLoading<T>(Object taskKey) => servicePolicy.resume<T>(taskKey);
+  Future<T>? resumeLoading<T>(Object taskKey) {
+    sftpMediaService.resumeLoading(taskKey);
+    return servicePolicy.resume<T>(taskKey);
+  }
 
   // convenience methods
 

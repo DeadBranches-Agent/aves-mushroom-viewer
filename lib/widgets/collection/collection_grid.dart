@@ -12,6 +12,7 @@ import 'package:aves/model/source/collection_lens.dart';
 import 'package:aves/model/source/collection_source.dart';
 import 'package:aves/model/source/section_keys.dart';
 import 'package:aves/ref/mime_types.dart';
+import 'package:aves/sftp/prefetch.dart';
 import 'package:aves/theme/durations.dart';
 import 'package:aves/theme/icons.dart';
 import 'package:aves/locale/calendar/calendar_utils.dart';
@@ -691,6 +692,16 @@ class _CollectionScrollViewState extends State<_CollectionScrollView> with Widge
     _scrollMonitoringTimer = Timer(ADurations.collectionScrollMonitoringTimerDelay, () {
       widget.isScrollingNotifier.value = false;
     });
+
+    final position = widget.scrollController.positions.firstOrNull;
+    if (position != null && position.hasContentDimensions && position.hasViewportDimension) {
+      sftpGridPrefetcher.onScroll(
+        widget.collection,
+        pixels: position.pixels,
+        viewportDimension: position.viewportDimension,
+        maxScrollExtent: position.maxScrollExtent,
+      );
+    }
   }
 
   void _stopScrollMonitoringTimer() => _scrollMonitoringTimer?.cancel();

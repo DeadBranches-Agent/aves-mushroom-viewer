@@ -1,0 +1,36 @@
+# SFTP image source — milestone plan and session handoff
+
+One-line summary: working plan, milestone status, and handoff notes for the remote SFTP image source feature, maintained across sessions.
+
+## How to resume in a new session
+1. Read this file, `DECISIONS.md`, and `aves-media-pipeline.md` (seam analysis).
+2. `git log --oneline -15` on branch `claude/aves-sftp-image-source-4px7wz` to see what landed.
+3. Continue at the first unchecked milestone below. Update checkboxes and the "state" note as you go, and commit doc updates together with code.
+
+## Build facts (verified)
+- Flavor to build: **libre** (F-Droid; `aves_useCrashlytics` is only true for "play" task names, and libre pins `aves_services_none` + `aves_report_console` via `scripts/apply_flavor_libre.sh`).
+- Dependency-update step before building: `scripts/apply_flavor_libre.sh` (rewrites pubspec plugin paths, runs `flutterw clean` + `pub get`).
+- Build: `./flutterw build apk --debug -t lib/main_libre.dart --flavor libre`.
+- Flutter is vendored as git submodule `.flutter` (beta v3.47.0-0.3.pre); `./flutterw` initializes it.
+- dartssh2 is checked out at `/home/user/dartssh2` on the same branch name; add as a path/git dependency. `SftpFile.readBytes({length, offset})` gives ranged reads.
+
+## Milestones
+- [x] M0 Orientation: media-pipeline analysis written, seam chosen (`aves-media-pipeline.md`).
+- [x] M1 Skeleton: sftp entry origin + URI scheme; host config model; secure credential storage; connection manager (one SSHClient per host, reconnect, close on background).
+- [x] M2 Listing: SFTP directory listing → AvesEntry list appearing as an album in the collection; read-only enforcement.
+- [x] M3 Scheduler + cache: single per-host priority queue (4 concurrent reads), cancellable requests; shared disk cache (thumb 200MB / full 1GB LRU, key host+path+mtime+size+variant) in app-private storage.
+- [x] M4 Thumbnails: grid thumbnails through the scheduler (JPEG embedded-preview header reads, else full download reused for viewer; original-bytes previews instead of WebP re-encode, see D6/D7); viewport-priority + speculative prefetch one screen ahead.
+- [x] M5 Viewer: full-size bytes through the same scheduler/cache; sliding prefetch window (3 ahead / 1 behind, direction bias after 2 same-way swipes); viewer suspends speculative thumb fetches.
+- [x] M6 Setup UI: add-host screen (address/port/user/password|key, dir), host-key TOFU pinning, ACCESS_LOCAL_NETWORK runtime permission.
+- [x] M7 Settings: hosts list with per-host cache size + clear; prefetch window settings (SftpPrefs).
+- [x] M8 Debug APK builds (`build/app/outputs/flutter-apk/app-libre-debug.apk`); pushed; draft PRs.
+
+## Current state
+- Session 1 complete: feature implemented, 158 tests green (85 sftp-specific), `dart analyze lib test` clean, debug APK built with the feature. See DECISIONS.md D4–D12 for the shape and departures.
+
+## Follow-ups worth considering (not started)
+- On-device validation against a real SFTP server (untested end to end — nothing here ran on a phone).
+- HEIC/AVIF embedded-preview extraction; progressive JPEG first-scan decode.
+- Refresh grid cell sharpness once full bytes arrive (thumbnail key is unchanged, so a soft EXIF preview stays until cache eviction).
+- Share/export actions on remote entries pass `sftp://` URIs to platform handlers and will fail; hide or materialize-then-share.
+- Non-JPEG entries have 0×0 dimensions until first full download; viewer lays out with aspect 1 until then.
