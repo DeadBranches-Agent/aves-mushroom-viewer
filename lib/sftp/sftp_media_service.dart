@@ -14,6 +14,7 @@ import 'package:aves/ref/mime_types.dart';
 import 'package:aves/sftp/cache.dart';
 import 'package:aves/sftp/connection.dart';
 import 'package:aves/sftp/model/sftp_host.dart';
+import 'package:aves/sftp/prefs.dart';
 import 'package:aves/sftp/preview_extractor.dart';
 import 'package:aves/sftp/scheduler.dart';
 import 'package:aves/services/common/decoding.dart';
@@ -70,6 +71,7 @@ class SftpMediaService {
     final vaultRoot = await storageService.getVaultRoot();
     _albumRoot = pContext.join(pContext.dirname(pContext.normalize(vaultRoot)), 'sftp');
     await sftpHosts.init();
+    await sftpPrefs.init();
     sftpConnectionPool.init(AvesApp.lifecycleStateNotifier);
     await sftpCache.init(await storageService.getInternalCacheDirectory());
   }

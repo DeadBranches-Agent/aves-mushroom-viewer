@@ -15,19 +15,22 @@ One-line summary: working plan, milestone status, and handoff notes for the remo
 - dartssh2 is checked out at `/home/user/dartssh2` on the same branch name; add as a path/git dependency. `SftpFile.readBytes({length, offset})` gives ranged reads.
 
 ## Milestones
-- [ ] M0 Orientation: media-pipeline analysis written, seam chosen (`aves-media-pipeline.md`).
-- [ ] M1 Skeleton: sftp entry origin + URI scheme; host config model; secure credential storage; connection manager (one SSHClient per host, reconnect, close on background).
-- [ ] M2 Listing: SFTP directory listing → AvesEntry list appearing as an album in the collection; read-only enforcement.
-- [ ] M3 Scheduler + cache: single per-host priority queue (4 concurrent reads), cancellable requests; shared disk cache (thumb 200MB / full 1GB LRU, key host+path+mtime+size+variant) in app-private storage.
-- [ ] M4 Thumbnails: grid thumbnails through the scheduler (embedded-preview header reads where cheap, else full download reused for viewer), WebP q73 at Aves thumbnail size; viewport-priority + modest speculative prefetch.
-- [ ] M5 Viewer: full-size bytes through the same scheduler/cache; sliding prefetch window (3 ahead / 1 behind, direction bias after 2 same-way swipes); viewer suspends speculative thumb fetches.
-- [ ] M6 Setup UI: add-host screen (address/port/user/password|key, dir), host-key TOFU pinning, ACCESS_LOCAL_NETWORK runtime permission.
-- [ ] M7 Settings: hosts list with per-host cache size + clear; prefetch window setting.
-- [ ] M8 Debug APK builds; final report; push + draft PRs.
+- [x] M0 Orientation: media-pipeline analysis written, seam chosen (`aves-media-pipeline.md`).
+- [x] M1 Skeleton: sftp entry origin + URI scheme; host config model; secure credential storage; connection manager (one SSHClient per host, reconnect, close on background).
+- [x] M2 Listing: SFTP directory listing → AvesEntry list appearing as an album in the collection; read-only enforcement.
+- [x] M3 Scheduler + cache: single per-host priority queue (4 concurrent reads), cancellable requests; shared disk cache (thumb 200MB / full 1GB LRU, key host+path+mtime+size+variant) in app-private storage.
+- [x] M4 Thumbnails: grid thumbnails through the scheduler (JPEG embedded-preview header reads, else full download reused for viewer; original-bytes previews instead of WebP re-encode, see D6/D7); viewport-priority + speculative prefetch one screen ahead.
+- [x] M5 Viewer: full-size bytes through the same scheduler/cache; sliding prefetch window (3 ahead / 1 behind, direction bias after 2 same-way swipes); viewer suspends speculative thumb fetches.
+- [x] M6 Setup UI: add-host screen (address/port/user/password|key, dir), host-key TOFU pinning, ACCESS_LOCAL_NETWORK runtime permission.
+- [x] M7 Settings: hosts list with per-host cache size + clear; prefetch window settings (SftpPrefs).
+- [x] M8 Debug APK builds (`build/app/outputs/flutter-apk/app-libre-debug.apk`); pushed; draft PRs.
 
 ## Current state
-- Session 1 in progress: exploration agents running; Flutter submodule downloading.
+- Session 1 complete: feature implemented, 158 tests green (85 sftp-specific), `dart analyze lib test` clean, debug APK built with the feature. See DECISIONS.md D4–D12 for the shape and departures.
 
-## Known risks / open items
-- Flutter artifact download (storage.googleapis.com) must pass the network proxy — unverified.
-- Android 17 / API 37 `ACCESS_LOCAL_NETWORK` permission name must be checked against the SDK in this checkout.
+## Follow-ups worth considering (not started)
+- On-device validation against a real SFTP server (untested end to end — nothing here ran on a phone).
+- HEIC/AVIF embedded-preview extraction; progressive JPEG first-scan decode.
+- Refresh grid cell sharpness once full bytes arrive (thumbnail key is unchanged, so a soft EXIF preview stays until cache eviction).
+- Share/export actions on remote entries pass `sftp://` URIs to platform handlers and will fail; hide or materialize-then-share.
+- Non-JPEG entries have 0×0 dimensions until first full download; viewer lays out with aspect 1 until then.

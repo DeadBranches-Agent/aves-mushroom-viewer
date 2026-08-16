@@ -1020,6 +1020,8 @@
 
   "settingsSftpSectionTitle": "Remote (SFTP)",
   "settingsSftpHostsTile": "Hosts",
+  "settingsSftpPrefetchAheadTile": "Viewer images prefetched ahead",
+  "settingsSftpPrefetchBehindTile": "Viewer images prefetched behind",
   "settingsSftpHostsPageTitle": "SFTP Hosts",
   "settingsSftpHostsEmpty": "No hosts",
   "settingsSftpAddHostTooltip": "Add host",

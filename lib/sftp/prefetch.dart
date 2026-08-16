@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:aves/model/entry/entry.dart';
 import 'package:aves/model/entry/origins.dart';
 import 'package:aves/model/source/collection_lens.dart';
+import 'package:aves/sftp/prefs.dart';
 import 'package:aves/sftp/scheduler.dart';
 import 'package:aves/sftp/sftp_media_service.dart';
 import 'package:flutter/foundation.dart';
@@ -12,15 +13,12 @@ final SftpViewerPrefetcher sftpViewerPrefetcher = SftpViewerPrefetcher._private(
 final SftpGridPrefetcher sftpGridPrefetcher = SftpGridPrefetcher._private();
 
 // keeps full-size bytes resident for a sliding window around the entry shown
-// in the viewer: `windowAhead` ahead and `windowBehind` behind, in swipe direction.
-// the window starts symmetric and only leans into a direction after two
-// consecutive swipes the same way, so the first backward swipe is not a miss.
-// when the index moves, whatever entered the window is enqueued (nearest first)
-// and whatever left it is cancelled.
+// in the viewer: `sftpPrefs.prefetchAhead` ahead and `prefetchBehind` behind,
+// in swipe direction. the window starts symmetric and only leans into a
+// direction after two consecutive swipes the same way, so the first backward
+// swipe is not a miss. when the index moves, whatever entered the window is
+// enqueued (nearest first) and whatever left it is cancelled.
 class SftpViewerPrefetcher {
-  static const windowAhead = 3;
-  static const windowBehind = 1;
-
   List<AvesEntry> Function()? _entries;
   ValueNotifier<AvesEntry?>? _entryNotifier;
   final Map<String, SftpTicket<Object?>> _tickets = {};
@@ -66,6 +64,8 @@ class SftpViewerPrefetcher {
     }
     _lastIndex = index;
 
+    final windowAhead = sftpPrefs.prefetchAhead;
+    final windowBehind = sftpPrefs.prefetchBehind;
     final biased = _consecutiveSameWay >= 2;
     final sign = _lastDelta.sign == 0 ? 1 : _lastDelta.sign;
     // symmetric by default; asymmetric only once a direction is established
