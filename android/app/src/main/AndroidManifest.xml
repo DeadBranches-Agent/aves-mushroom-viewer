@@ -45,6 +45,8 @@
         tools:ignore="SystemPermissionTypo" />
     <!-- TODO TLAD still needed to fetch map tiles / reverse geocoding / else ? check in release mode -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- from Android 17 (API 37), reaching devices on the local network (e.g. SFTP hosts) requires a runtime permission -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <!-- from Android 12 (API 31), users can optionally grant access to the media management special permission -->
     <uses-permission
         android:name="android.permission.MANAGE_MEDIA"

@@ -1018,6 +1018,91 @@
   "settingsStorageAccessEmpty": "No access grants",
   "settingsStorageAccessRevokeTooltip": "Revoke",
 
+  "settingsSftpSectionTitle": "Remote (SFTP)",
+  "settingsSftpHostsTile": "Hosts",
+  "settingsSftpHostsPageTitle": "SFTP Hosts",
+  "settingsSftpHostsEmpty": "No hosts",
+  "settingsSftpAddHostTooltip": "Add host",
+  "settingsSftpHostCacheSize": "Cache {size}",
+  "@settingsSftpHostCacheSize": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "12.34 MB"
+      }
+    }
+  },
+  "settingsSftpHostActionEdit": "Edit",
+  "settingsSftpHostActionClearCache": "Clear cache",
+  "settingsSftpHostActionRemove": "Remove",
+  "settingsSftpClearCacheConfirmationDialogMessage": "Delete the files cached for “{name}”?",
+  "@settingsSftpClearCacheConfirmationDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Home NAS"
+      }
+    }
+  },
+  "settingsSftpRemoveHostConfirmationDialogMessage": "Remove “{name}”? Its items will be removed from your collection, and its cached files will be deleted.",
+  "@settingsSftpRemoveHostConfirmationDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Home NAS"
+      }
+    }
+  },
+  "settingsSftpRemoveHostButtonLabel": "REMOVE",
+
+  "settingsSftpNewHostPageTitle": "New Host",
+  "settingsSftpEditHostPageTitle": "Edit Host",
+  "settingsSftpHostNameLabel": "Name",
+  "settingsSftpHostAddressLabel": "Host",
+  "settingsSftpHostPortLabel": "Port",
+  "settingsSftpHostPortInvalidHelper": "Invalid port",
+  "settingsSftpHostUsernameLabel": "Username",
+  "settingsSftpHostAuthTypeTile": "Authentication",
+  "settingsSftpHostAuthTypeDialogTitle": "Authentication",
+  "settingsSftpHostAuthTypePassword": "Password",
+  "settingsSftpHostAuthTypePrivateKey": "Private key",
+  "settingsSftpHostPasswordLabel": "Password",
+  "settingsSftpHostPrivateKeyLabel": "Private key (PEM)",
+  "settingsSftpHostSecretUnchangedHelper": "Leave blank to keep the current secret",
+  "settingsSftpHostDirectoryLabel": "Remote directory",
+
+  "settingsSftpHostKeyDialogTitle": "Host Key",
+  "settingsSftpHostKeyDialogMessage": "“{name}” at {address} is not known yet. Trust its host key?",
+  "@settingsSftpHostKeyDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Home NAS"
+      },
+      "address": {
+        "type": "String",
+        "example": "192.168.1.2:22"
+      }
+    }
+  },
+  "settingsSftpHostKeyDialogFingerprintLabel": "SHA-256 fingerprint",
+  "settingsSftpHostKeyTrustButtonLabel": "TRUST",
+
+  "settingsSftpLocalNetworkPermissionDeniedFeedback": "Local network permission denied",
+  "settingsSftpConnectionRefusedFeedback": "Connection refused",
+  "settingsSftpConnectionTimeoutFeedback": "Connection timed out",
+  "settingsSftpAuthenticationFailedFeedback": "Authentication failed",
+  "settingsSftpHostKeyChangedFeedback": "Host key changed — connection refused ({fingerprint})",
+  "@settingsSftpHostKeyChangedFeedback": {
+    "placeholders": {
+      "fingerprint": {
+        "type": "String",
+        "example": "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU"
+      }
+    }
+  },
+  "settingsSftpHostKeyUnknownFeedback": "Unknown host key rejected",
+
   "settingsAccessibilitySectionTitle": "Accessibility",
   "settingsRemoveAnimationsTile": "Remove animations",
   "settingsRemoveAnimationsDialogTitle": "Remove Animations",

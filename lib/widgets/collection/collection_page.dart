@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:aves/app_mode.dart';
 import 'package:aves/model/entry/entry.dart';
+import 'package:aves/model/filters/covered/stored_album.dart';
 import 'package:aves/model/filters/filters.dart';
 import 'package:aves/model/filters/query.dart';
 import 'package:aves/model/filters/trash.dart';
@@ -10,12 +11,14 @@ import 'package:aves/model/selection.dart';
 import 'package:aves/model/settings/settings.dart';
 import 'package:aves/model/source/collection_lens.dart';
 import 'package:aves/model/source/collection_source.dart';
+import 'package:aves/sftp/sftp_media_service.dart';
 import 'package:aves/theme/durations.dart';
 import 'package:aves/view/view.dart';
 import 'package:aves/widgets/collection/collection_grid.dart';
 import 'package:aves/widgets/collection/entry_set_action_delegate.dart';
 import 'package:aves/widgets/common/basic/draggable_scrollbar/notifications.dart';
 import 'package:aves/widgets/common/basic/insets.dart';
+import 'package:aves/widgets/common/action_mixins/feedback.dart';
 import 'package:aves/widgets/common/basic/scaffold.dart';
 import 'package:aves/widgets/common/behaviour/pop/double_back.dart';
 import 'package:aves/widgets/common/behaviour/pop/scope.dart';
@@ -27,6 +30,7 @@ import 'package:aves/widgets/common/providers/selection_provider.dart';
 import 'package:aves/widgets/navigation/drawer/app_drawer.dart';
 import 'package:aves/widgets/navigation/nav_bar/nav_bar.dart';
 import 'package:aves/widgets/navigation/tv_rail.dart';
+import 'package:aves/widgets/settings/sftp/error_feedback.dart';
 import 'package:aves_model/aves_model.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +54,7 @@ class CollectionPage extends StatefulWidget {
   State<CollectionPage> createState() => _CollectionPageState();
 }
 
-class _CollectionPageState extends State<CollectionPage> {
+class _CollectionPageState extends State<CollectionPage> with FeedbackMixin {
   final Set<StreamSubscription> _subscriptions = {};
   late CollectionLens _collection;
   final StreamController<DraggableScrollbarEvent> _draggableScrollBarEventStreamController = StreamController.broadcast();
@@ -72,6 +76,21 @@ class _CollectionPageState extends State<CollectionPage> {
       }),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkInitHighlight());
+    unawaited(_refreshSftpAlbum());
+  }
+
+  // opening a remote album re-lists its directory, so remote changes appear
+  // without leaving the normal browsing flow
+  Future<void> _refreshSftpAlbum() async {
+    final host = widget.filters?.whereType<StoredAlbumFilter>().map((filter) => sftpMediaService.hostOfAlbumPath(filter.album)).nonNulls.firstOrNull;
+    if (host == null) return;
+
+    try {
+      await sftpMediaService.refreshHost(host, widget.source);
+    } catch (error) {
+      if (!mounted) return;
+      showFeedback(context, FeedbackType.warn, sftpErrorMessage(context.l10n, error));
+    }
   }
 
   @override

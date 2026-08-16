@@ -16,6 +16,8 @@ abstract class StorageService {
 
   Future<String> getExternalCacheDirectory();
 
+  Future<String> getInternalCacheDirectory();
+
   Future<Set<String>> getUntrackedTrashPaths(Iterable<String> knownPaths);
 
   Future<Set<String>> getUntrackedVaultPaths(String vaultName, Iterable<String> knownPaths);
@@ -110,6 +112,19 @@ class PlatformStorageService implements StorageService {
     try {
       final result = await _platform.invokeMethod('getCacheDirectory', <String, Object?>{
         'external': true,
+      });
+      return result as String;
+    } on PlatformException catch (e, stack) {
+      await reportService.recordError(e, stack);
+    }
+    return '';
+  }
+
+  @override
+  Future<String> getInternalCacheDirectory() async {
+    try {
+      final result = await _platform.invokeMethod('getCacheDirectory', <String, Object?>{
+        'external': false,
       });
       return result as String;
     } on PlatformException catch (e, stack) {

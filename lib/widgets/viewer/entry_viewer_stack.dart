@@ -12,6 +12,7 @@ import 'package:aves/model/settings/enums/accessibility_timeout.dart';
 import 'package:aves/model/settings/settings.dart';
 import 'package:aves/model/source/collection_lens.dart';
 import 'package:aves/services/common/services.dart';
+import 'package:aves/sftp/prefetch.dart';
 import 'package:aves/theme/durations.dart';
 import 'package:aves/widgets/aves_app.dart';
 import 'package:aves/widgets/collection/collection_page.dart';
@@ -171,6 +172,7 @@ class _EntryViewerStackState extends State<EntryViewerStack> with EntryViewContr
     _playingVideoControllerNotifier.addListener(_onPlayingVideoControllerChanged);
     initEntryControllers(entry);
     _registerWidget(widget);
+    sftpViewerPrefetcher.attach(() => entries, entryNotifier);
     AvesApp.lifecycleStateNotifier.addListener(_onAppLifecycleStateChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initOverlay());
   }
@@ -204,6 +206,7 @@ class _EntryViewerStackState extends State<EntryViewerStack> with EntryViewContr
     _verticalScrollNotifier.dispose();
     _heroInfoNotifier.dispose();
     _stopOverlayHidingTimer();
+    sftpViewerPrefetcher.detach();
     AvesApp.lifecycleStateNotifier.removeListener(_onAppLifecycleStateChanged);
     _unregisterWidget(widget);
     super.dispose();

@@ -21,6 +21,7 @@ import 'package:aves/ref/locales.dart';
 import 'package:aves/ref/mime_types.dart';
 import 'package:aves/services/accessibility_service.dart';
 import 'package:aves/services/common/services.dart';
+import 'package:aves/sftp/connection.dart';
 import 'package:aves/theme/colors.dart';
 import 'package:aves/theme/icons.dart';
 import 'package:aves/theme/styles.dart';
@@ -46,6 +47,7 @@ import 'package:aves/widgets/navigation/tv_page_transitions.dart';
 import 'package:aves/widgets/navigation/tv_rail.dart';
 import 'package:aves/widgets/settings/app_export/items.dart';
 import 'package:aves/widgets/settings/settings_action_delegate.dart';
+import 'package:aves/widgets/settings/sftp/host_key_dialog.dart';
 import 'package:aves/widgets/welcome_page.dart';
 import 'package:aves_model/aves_model.dart';
 import 'package:aves_utils/aves_utils.dart';
@@ -202,6 +204,10 @@ class _AvesAppState extends State<AvesApp> with WidgetsBindingObserver {
     _subscriptions.add(_analysisCompletionChannel.receiveBroadcastStream().listen((_) => _onAnalysisCompletion()));
     _subscriptions.add(_errorChannel.receiveBroadcastStream().cast<String>().listen(_onError));
     _appModeNotifier.addListener(_onAppModeChanged);
+    sftpConnectionPool.onUnknownHostKey = (host, fingerprint) async {
+      final context = navigatorKey.currentContext;
+      return context != null && await confirmSftpHostKey(context, host, fingerprint);
+    };
 
     debugPrint('start listening to app lifecycle');
     WidgetsBinding.instance.addObserver(this);
