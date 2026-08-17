@@ -108,15 +108,28 @@ class SftpCache {
     );
   }
 
-  // cached file for this key, or null; touches LRU order on hit
+  // touching mtime is only for LRU persistence across restarts; coarse is fine
+  static const _touchInterval = Duration(minutes: 10);
+  final Map<String, DateTime> _lastTouched = {};
+
   File? get(SftpCacheKey key) {
     final path = _pathOf(key);
     final entry = _entries.remove(path);
     if (entry == null) return null;
 
     _entries[path] = entry;
-    entry.file.setLastModifiedSync(DateTime.now());
+    _touch(entry.file);
     return entry.file;
+  }
+
+  void _touch(File file) {
+    final now = DateTime.now();
+    final last = _lastTouched[file.path];
+    if (last != null && now.difference(last) < _touchInterval) return;
+
+    _lastTouched[file.path] = now;
+    // fire and forget: a lost touch only slightly misorders LRU after restart
+    file.setLastModified(now).catchError((_) {});
   }
 
   // writes bytes (atomically: temp file + rename), updates the index, then
