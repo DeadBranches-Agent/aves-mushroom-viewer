@@ -39,7 +39,7 @@ Goal: deleting sftp entries through the standard Aves delete UI (viewer trash qu
 - [x] S4-M3 Settings toggle `SettingsTileSftpDeleteToTrash` backed by `SftpPrefs.deleteToRemoteTrash`, l10n strings in app_en.arb.
 - [x] S4-M4 UI seams: viewer `isVisible` `.delete` case split to allow sftp origin; both delegates' `_delete` intercept sftp entries via `SftpEntryDeleteMixin` (`lib/widgets/common/action_mixins/sftp_delete.dart`) before bin routing.
 - [x] S4-M5 Tests: 160 green (`test/sftp/prefs_test.dart` added), `dart analyze lib test` clean.
-- [ ] S4-M6 Debug APK builds; push; draft PR; docs updated.
+- [x] S4-M6 Debug APK builds (`build/app/outputs/flutter-apk/app-libre-debug.apk`); pushed; draft PR #5; docs updated.
 
 dartssh2: no changes expected (`remove`/`rename`/`mkdir` already exist on `SftpClient`); branch exists on origin already.
 
