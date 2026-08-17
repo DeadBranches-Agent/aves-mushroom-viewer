@@ -80,30 +80,32 @@ class SftpCache {
     final root = Directory(_sftpDir);
     if (!await root.exists()) return;
 
-    final found = <({_SftpCacheEntry entry, DateTime modified})>[];
+    final candidates = <File>[];
     await for (final entity in root.list(recursive: true)) {
-      final scanned = await _scanEntity(entity);
-      if (scanned != null) found.add(scanned);
+      if (entity is File && !entity.path.endsWith(_tempExtension)) candidates.add(entity);
+    }
+
+    final found = <({_SftpCacheEntry entry, DateTime modified})>[];
+    for (final batch in candidates.slices(256)) {
+      final scanned = await Future.wait(batch.map(_scanEntity));
+      found.addAll(scanned.nonNulls);
     }
 
     mergeSort(found, compare: (a, b) => a.modified.compareTo(b.modified));
     found.forEach((v) => _index(v.entry));
   }
 
-  // returns null for anything that isn't a well-formed cache file:
-  // directories, temp files, or files at the wrong depth / under an unknown variant
-  Future<({_SftpCacheEntry entry, DateTime modified})?> _scanEntity(FileSystemEntity entity) async {
-    if (entity is! File || entity.path.endsWith(_tempExtension)) return null;
-
+  // returns null for files at the wrong depth or under an unknown variant
+  Future<({_SftpCacheEntry entry, DateTime modified})?> _scanEntity(File file) async {
     // expected: <variant>/<hostId>/<hash>
-    final parts = p.split(p.relative(entity.path, from: _sftpDir));
+    final parts = p.split(p.relative(file.path, from: _sftpDir));
     if (parts.length != 3) return null;
     final variant = SftpCacheVariant.values.asNameMap()[parts[0]];
     if (variant == null) return null;
 
-    final stat = await entity.stat();
+    final stat = await file.stat();
     return (
-      entry: _SftpCacheEntry(hostId: parts[1], variant: variant, file: entity, sizeBytes: stat.size),
+      entry: _SftpCacheEntry(hostId: parts[1], variant: variant, file: file, sizeBytes: stat.size),
       modified: stat.modified,
     );
   }
