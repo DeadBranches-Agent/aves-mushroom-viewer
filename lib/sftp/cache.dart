@@ -82,9 +82,18 @@ class SftpCache {
     if (!await root.exists()) return;
 
     final candidates = <File>[];
+    final orphans = <File>[];
     await for (final entity in root.list(recursive: true)) {
-      if (entity is File && !entity.path.endsWith(_tempExtension)) candidates.add(entity);
+      if (entity is! File) continue;
+      if (entity.path.endsWith(_tempExtension)) {
+        orphans.add(entity);
+      } else {
+        candidates.add(entity);
+      }
     }
+    
+    // leftovers from a crash between write and rename; outside any budget
+    await Future.wait(orphans.map((f) => f.delete().catchError((_) => f)));
 
     final found = <({_SftpCacheEntry entry, DateTime modified})>[];
     for (final batch in candidates.slices(256)) {
