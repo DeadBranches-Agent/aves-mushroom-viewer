@@ -34,8 +34,9 @@ class _SftpCacheEntry {
   final SftpCacheVariant variant;
   final File file;
   final int sizeBytes;
+  DateTime? lastTouched;
 
-  const _SftpCacheEntry({
+  _SftpCacheEntry({
     required this.hostId,
     required this.variant,
     required this.file,
