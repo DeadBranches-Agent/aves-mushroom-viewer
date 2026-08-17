@@ -145,10 +145,16 @@ class SftpCache {
   }
 
   // current on-disk bytes for this host, both variants combined
-  int sizeForHost(String hostId) => _entries.values.where((v) => v.hostId == hostId).fold(0, (sum, v) => sum + v.sizeBytes);
+  int sizeForHost(String hostId) =>
+      _entries.values.where((v) => v.hostId == hostId).map((v) => v.sizeBytes).sum;
 
   Future<void> clearHost(String hostId) async {
-    _entries.values.where((v) => v.hostId == hostId).toList().forEach(_unindex);
+    // unindex before deleting: if a delete fails, the index under-counts and
+    // `init` heals it on next launch, rather than over-counting stale files
+    final stale = _entries.values.where((v) => v.hostId == hostId).toList();
+    for (final entry in stale) {
+      _unindex(entry);
+    }
 
     for (final variant in SftpCacheVariant.values) {
       final hostDir = Directory(p.join(_sftpDir, variant.name, hostId));
