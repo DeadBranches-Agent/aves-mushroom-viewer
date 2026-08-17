@@ -203,7 +203,11 @@ class SftpCache {
       if (victim == null) return;
 
       _unindex(victim);
-      await victim.file.delete();
+      try {
+        await victim.file.delete();
+      } on FileSystemException {
+        // already gone; the index is already correct
+      }
     }
   }
 }
