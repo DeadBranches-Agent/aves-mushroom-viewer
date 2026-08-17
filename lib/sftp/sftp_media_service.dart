@@ -272,6 +272,83 @@ class SftpMediaService {
     return await ticket.future;
   }
 
+  // deletes the given remote entries on their servers — permanently, or by
+  // moving them into a `.trash` subdirectory of the host directory when
+  // `sftpPrefs.deleteToRemoteTrash` is set — then removes the successfully
+  // deleted entries from `source` and the local media DB.
+  // per-entry failures are collected, not thrown, so one bad file does not
+  // abort the rest of a selection; the first error is returned for feedback.
+  Future<({Set<String> deletedUris, Object? firstError})> deleteEntries(Iterable<AvesEntry> entries, CollectionSource source) async {
+    final deletedUris = <String>{};
+    Object? firstError;
+
+    final byHostId = groupBy(entries.where((entry) => entry.origin == EntryOrigins.sftp), (entry) => hostIdOfUri(entry.uri));
+    for (final MapEntry(key: hostId, value: hostEntries) in byHostId.entries) {
+      final host = sftpHosts.byId(hostId ?? '');
+      if (host == null) {
+        firstError ??= StateError('unknown remote host for id=$hostId');
+        continue;
+      }
+
+      final toTrash = sftpPrefs.deleteToRemoteTrash;
+      var trashDirEnsured = false;
+      for (final entry in hostEntries) {
+        final remotePath = remotePathOfUri(entry.uri);
+        try {
+          await _withClient(host, (client) async {
+            if (toTrash) {
+              final trashDir = '${host.directory}${host.directory.endsWith('/') ? '' : '/'}.trash';
+              if (!trashDirEnsured) {
+                // probe with `stat` rather than an unconditional `mkdir`, so a
+                // real mkdir failure (e.g. permission denied) surfaces as its
+                // own specific error instead of a puzzling rename failure
+                try {
+                  await client.stat(trashDir);
+                } on SftpStatusError catch (e) {
+                  if (e.code != SftpStatusCode.noSuchFile) rethrow;
+                  await client.mkdir(trashDir);
+                }
+                trashDirEnsured = true;
+              }
+              final filename = pContext.basename(remotePath);
+              final target = '$trashDir/$filename';
+              try {
+                await client.rename(remotePath, target);
+              } on SftpStatusError {
+                // v3 has no "target exists" status (existing targets come back
+                // as generic failure), so probe the target: only a confirmed
+                // collision warrants retrying under a name made unique by the
+                // deletion time; any other failure is reported as-is
+                var collision = false;
+                try {
+                  await client.stat(target);
+                  collision = true;
+                } on SftpStatusError {
+                  // no collision evidence, keep the original error
+                }
+                if (!collision) rethrow;
+                final extension = pContext.extension(filename);
+                final stem = pContext.basenameWithoutExtension(filename);
+                await client.rename(remotePath, '$trashDir/$stem.${DateTime.now().millisecondsSinceEpoch}$extension');
+              }
+            } else {
+              await client.remove(remotePath);
+            }
+          });
+          deletedUris.add(entry.uri);
+        } catch (error) {
+          firstError ??= error;
+        }
+      }
+    }
+
+    if (deletedUris.isNotEmpty) {
+      deletedUris.forEach(_entriesByUri.remove);
+      await source.removeEntries(deletedUris, includeTrash: false);
+    }
+    return (deletedUris: deletedUris, firstError: firstError);
+  }
+
   // removes this host's entries from `source` and the local media DB,
   // and clears its caches. used when removing a host.
   Future<void> removeHostData(SftpHost host, CollectionSource source) async {

@@ -1034,6 +1034,17 @@
       }
     }
   },
+  "sftpDeleteToTrashConfirmationDialogMessage": "{count, plural, =1{Move this item to the “.trash” folder on the server?} other{Move these {count} items to the “.trash” folder on the server?}}",
+  "@sftpDeleteToTrashConfirmationDialogMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "settingsSftpDeleteToTrashTile": "Move deleted files to remote trash",
+  "settingsSftpDeleteToTrashSubtitle": "Deleted items are moved to a “.trash” folder on the server instead of being deleted permanently",
   "settingsSftpHostActionEdit": "Edit",
   "settingsSftpHostActionClearCache": "Clear cache",
   "settingsSftpHostActionRemove": "Remove",
