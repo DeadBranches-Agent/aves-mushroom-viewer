@@ -86,7 +86,11 @@ class SftpMediaService {
   // synthetic directory that makes entries of this host group into an album
   String albumPathFor(SftpHost host) => pContext.join(_albumRoot, host.name);
 
-  bool isSftpAlbumPath(String dirPath) => pContext.isWithin(_albumRoot, dirPath);
+  // album paths of all configured hosts, so their albums stay visible even when
+  // empty. safe to call before `init` (some source callbacks may fire early).
+  Set<String> allAlbumPaths() => _initialized ? sftpHosts.all.map(albumPathFor).toSet() : const {};
+
+  bool isSftpAlbumPath(String dirPath) => _initialized && pContext.isWithin(_albumRoot, dirPath);
 
   SftpHost? hostOfAlbumPath(String dirPath) => sftpHosts.all.firstWhereOrNull((host) => albumPathFor(host) == dirPath);
 
@@ -128,8 +132,9 @@ class SftpMediaService {
         final sizeBytes = attr.size ?? 0;
         final known = knownByUri[uri];
         if (known != null) {
-          if (known.dateModifiedMillis == mtimeMillis && known.sizeBytes == sizeBytes) return;
-          // remote file changed: replace the entry, so caches keyed on mtime/size refresh
+          if (known.dateModifiedMillis == mtimeMillis && known.sizeBytes == sizeBytes && known.path == pContext.join(albumPath, file.name.filename)) return;
+          // remote file changed (or the host was renamed, moving its synthetic album):
+          // replace the entry, so caches keyed on mtime/size refresh and the album path follows
           removedUris.add(uri);
         }
 

@@ -6,6 +6,7 @@ import 'package:aves/model/settings/settings.dart';
 import 'package:aves/model/source/collection_source.dart';
 import 'package:aves/model/vaults/vaults.dart';
 import 'package:aves/services/common/services.dart';
+import 'package:aves/sftp/sftp_media_service.dart';
 import 'package:aves/utils/android_file_utils.dart';
 import 'package:aves/view/view.dart';
 import 'package:aves_model/aves_model.dart';
@@ -74,6 +75,7 @@ mixin AlbumMixin on SourceBase {
       albums: {
         ...visibleEntries.map((entry) => entry.directory),
         ...vaults.all.map((v) => v.path),
+        ...sftpMediaService.allAlbumPaths(),
       },
     );
     cleanEmptyAlbums();
@@ -99,6 +101,8 @@ mixin AlbumMixin on SourceBase {
     if (visibleEntries.any((entry) => entry.directory == album)) return false;
     if (_newAlbums.contains(album)) return false;
     if (vaults.isVault(album)) return false;
+    // configured remote hosts keep their album visible even when empty
+    if (sftpMediaService.hostOfAlbumPath(album) != null) return false;
     if (settings.pinnedFilters.whereType<StoredAlbumFilter>().map((v) => v.album).contains(album)) return false;
     return true;
   }
@@ -219,6 +223,10 @@ mixin AlbumMixin on SourceBase {
     }
 
     if (type == AlbumType.vault) return pContext.basename(dirPath);
+
+    // sftp album paths are synthetic (app-private root, no storage volume),
+    // so volume-relative naming below would fall back to the full path
+    if (sftpMediaService.isSftpAlbumPath(dirPath)) return pContext.basename(dirPath);
 
     final dir = androidFileUtils.relativeDirectoryFromPath(dirPath);
     if (dir == null) return dirPath;

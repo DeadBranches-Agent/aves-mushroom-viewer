@@ -18,6 +18,7 @@ import 'package:aves/widgets/navigation/drawer/tile.dart';
 import 'package:aves/widgets/search/collection_search_delegate.dart';
 import 'package:aves/widgets/settings/navigation/drawer_tab_albums.dart';
 import 'package:aves/widgets/settings/navigation/drawer_tab_fixed.dart';
+import 'package:aves/widgets/settings/sftp/sftp_hosts_page.dart';
 import 'package:aves_model/aves_model.dart';
 import 'package:flutter/material.dart';
 
@@ -44,6 +45,7 @@ class NavigationDrawerEditorPage extends StatefulWidget {
     TagListPage.routeName,
     ExplorerPage.routeName,
     SearchPage.routeName,
+    SftpHostsPage.routeName,
   ];
 
   const NavigationDrawerEditorPage({super.key});
