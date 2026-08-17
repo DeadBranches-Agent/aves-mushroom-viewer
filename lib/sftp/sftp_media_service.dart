@@ -299,11 +299,14 @@ class SftpMediaService {
             if (toTrash) {
               final trashDir = '${host.directory}${host.directory.endsWith('/') ? '' : '/'}.trash';
               if (!trashDirEnsured) {
+                // probe with `stat` rather than an unconditional `mkdir`, so a
+                // real mkdir failure (e.g. permission denied) surfaces as its
+                // own specific error instead of a puzzling rename failure
                 try {
+                  await client.stat(trashDir);
+                } on SftpStatusError catch (e) {
+                  if (e.code != SftpStatusCode.noSuchFile) rethrow;
                   await client.mkdir(trashDir);
-                } on SftpStatusError {
-                  // most likely the directory already exists; a genuine mkdir
-                  // failure resurfaces as a rename failure below
                 }
                 trashDirEnsured = true;
               }
