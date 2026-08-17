@@ -101,8 +101,10 @@ class SftpMediaService {
   // lists the remote directory (images only, no recursion), diffs against the
   // known entries and updates `source` + the local media DB.
   // network/auth errors propagate to the caller (surfaced by the UI).
-  Future<void> refreshHost(SftpHost host, CollectionSource source) async {
-    if (!_refreshingHostIds.add(host.id)) return;
+  // returns the listed image count, so the UI can tell "empty" from "in sync",
+  // or null when a refresh of this host is already running.
+  Future<int?> refreshHost(SftpHost host, CollectionSource source) async {
+    if (!_refreshingHostIds.add(host.id)) return null;
     try {
       final names = await _withClient(host, (client) => client.listdir(host.directory));
 
@@ -169,6 +171,7 @@ class SftpMediaService {
         registerEntries(newEntries);
         source.addEntries(newEntries);
       }
+      return listed.length;
     } finally {
       _refreshingHostIds.remove(host.id);
     }

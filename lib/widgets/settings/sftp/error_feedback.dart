@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:aves/l10n/l10n.dart';
 import 'package:aves/sftp/connection.dart';
+import 'package:dartssh2/dartssh2.dart';
 
 // user-facing message for an error raised while connecting to or listing an SFTP host
 String sftpErrorMessage(AppLocalizations l10n, Object error) {
@@ -11,6 +12,12 @@ String sftpErrorMessage(AppLocalizations l10n, Object error) {
       return l10n.settingsSftpHostKeyChangedFeedback(e.actualFingerprint);
     case SftpHostKeyUnknownException _:
       return l10n.settingsSftpHostKeyUnknownFeedback;
+    case SftpStatusError e:
+      return switch (e.code) {
+        SftpStatusCode.noSuchFile => l10n.settingsSftpRemoteDirectoryNotFoundFeedback,
+        SftpStatusCode.permissionDenied => l10n.settingsSftpPermissionDeniedFeedback,
+        _ => l10n.settingsSftpStatusErrorFeedback(e.message),
+      };
     case TimeoutException _:
       return l10n.settingsSftpConnectionTimeoutFeedback;
     case SocketException _:

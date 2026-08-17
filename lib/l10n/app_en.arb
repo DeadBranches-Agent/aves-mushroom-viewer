@@ -1104,6 +1104,26 @@
     }
   },
   "settingsSftpHostKeyUnknownFeedback": "Unknown host key rejected",
+  "settingsSftpRemoteDirectoryNotFoundFeedback": "Remote directory not found. Check the path spelling and capitalization.",
+  "settingsSftpPermissionDeniedFeedback": "The server denied access to the remote path.",
+  "settingsSftpStatusErrorFeedback": "SFTP error: {message}",
+  "@settingsSftpStatusErrorFeedback": {
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "No such file"
+      }
+    }
+  },
+  "settingsSftpNoImagesFoundFeedback": "Connected, but no supported images were found in “{directory}”. Subfolders are not scanned.",
+  "@settingsSftpNoImagesFoundFeedback": {
+    "placeholders": {
+      "directory": {
+        "type": "String",
+        "example": "/home/user/photos"
+      }
+    }
+  },
 
   "settingsAccessibilitySectionTitle": "Accessibility",
   "settingsRemoveAnimationsTile": "Remove animations",

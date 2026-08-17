@@ -198,8 +198,9 @@ class _SftpHostsPageState extends State<SftpHostsPage> with FeedbackMixin {
     );
 
     Object? error;
+    int? listedCount;
     try {
-      await sftpMediaService.refreshHost(host, source);
+      listedCount = await sftpMediaService.refreshHost(host, source);
     } catch (e) {
       error = e;
     }
@@ -209,6 +210,8 @@ class _SftpHostsPageState extends State<SftpHostsPage> with FeedbackMixin {
 
     if (error != null) {
       showFeedback(context, FeedbackType.warn, sftpErrorMessage(l10n, error));
+    } else if (listedCount == 0) {
+      showFeedback(context, FeedbackType.warn, l10n.settingsSftpNoImagesFoundFeedback(host.directory));
     } else {
       showFeedback(context, FeedbackType.info, l10n.genericSuccessFeedback);
     }
