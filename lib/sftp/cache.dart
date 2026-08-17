@@ -59,6 +59,8 @@ class SftpCache {
 
   static const _tempExtension = '.tmp';
 
+  int _tempCounter = 0;
+  
   // byte budget per variant, overridable for tests
   final Map<SftpCacheVariant, int> budgetBytes = {
     SftpCacheVariant.thumbnail: thumbnailBudgetBytes,
@@ -150,7 +152,7 @@ class SftpCache {
     final file = File(path);
     await file.parent.create(recursive: true);
 
-    final tempFile = File('$path$_tempExtension');
+    final tempFile = File('$path.${_tempCounter++}$_tempExtension');
     await tempFile.writeAsBytes(bytes, flush: true);
     await tempFile.rename(path);
 
