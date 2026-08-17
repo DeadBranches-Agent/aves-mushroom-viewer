@@ -311,11 +311,22 @@ class SftpMediaService {
                 trashDirEnsured = true;
               }
               final filename = pContext.basename(remotePath);
+              final target = '$trashDir/$filename';
               try {
-                await client.rename(remotePath, '$trashDir/$filename');
+                await client.rename(remotePath, target);
               } on SftpStatusError {
-                // a same-named file may already sit in the trash; retry once
-                // under a name made unique by the deletion time
+                // v3 has no "target exists" status (existing targets come back
+                // as generic failure), so probe the target: only a confirmed
+                // collision warrants retrying under a name made unique by the
+                // deletion time; any other failure is reported as-is
+                var collision = false;
+                try {
+                  await client.stat(target);
+                  collision = true;
+                } on SftpStatusError {
+                  // no collision evidence, keep the original error
+                }
+                if (!collision) rethrow;
                 final extension = pContext.extension(filename);
                 final stem = pContext.basenameWithoutExtension(filename);
                 await client.rename(remotePath, '$trashDir/$stem.${DateTime.now().millisecondsSinceEpoch}$extension');
