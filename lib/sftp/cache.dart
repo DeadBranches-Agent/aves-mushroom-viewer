@@ -76,37 +76,38 @@ class SftpCache {
     _sftpDir = p.join(rootDir, 'sftp');
     _entries.clear();
     _variantSizes.clear();
-
+  
+    final root = Directory(_sftpDir);
+    if (!await root.exists()) return;
+  
     final found = <({_SftpCacheEntry entry, DateTime modified})>[];
-    for (final variant in SftpCacheVariant.values) {
-      final variantDir = Directory(p.join(_sftpDir, variant.name));
-      if (!await variantDir.exists()) continue;
-
-      for (final hostDir in await variantDir.list().toList()) {
-        if (hostDir is! Directory) continue;
-
-        final hostId = p.basename(hostDir.path);
-        for (final file in await hostDir.list().toList()) {
-          if (file is! File || file.path.endsWith(_tempExtension)) continue;
-
-          final stat = await file.stat();
-          found.add((
-            entry: _SftpCacheEntry(
-              hostId: hostId,
-              variant: variant,
-              file: file,
-              sizeBytes: stat.size,
-            ),
-            modified: stat.modified,
-          ));
-        }
-      }
+    await for (final entity in root.list(recursive: true)) {
+      final scanned = await _scanEntity(entity);
+      if (scanned != null) found.add(scanned);
     }
-
+  
     mergeSort(found, compare: (a, b) => a.modified.compareTo(b.modified));
     found.forEach((v) => _index(v.entry));
   }
-
+  
+  // returns null for anything that isn't a well-formed cache file:
+  // directories, temp files, or files at the wrong depth / under an unknown variant
+  Future<({_SftpCacheEntry entry, DateTime modified})?> _scanEntity(FileSystemEntity entity) async {
+    if (entity is! File || entity.path.endsWith(_tempExtension)) return null;
+  
+    // expected: <variant>/<hostId>/<hash>
+    final parts = p.split(p.relative(entity.path, from: _sftpDir));
+    if (parts.length != 3) return null;
+    final variant = SftpCacheVariant.values.asNameMap()[parts[0]];
+    if (variant == null) return null;
+  
+    final stat = await entity.stat();
+    return (
+      entry: _SftpCacheEntry(hostId: parts[1], variant: variant, file: entity, sizeBytes: stat.size),
+      modified: stat.modified,
+    );
+  }
+  
   // cached file for this key, or null; touches LRU order on hit
   File? get(SftpCacheKey key) {
     final path = _pathOf(key);
