@@ -10,6 +10,7 @@ import 'package:aves/widgets/filter_grids/albums_page.dart';
 import 'package:aves/widgets/filter_grids/countries_page.dart';
 import 'package:aves/widgets/filter_grids/tags_page.dart';
 import 'package:aves/widgets/navigation/nav_item.dart';
+import 'package:aves/widgets/settings/sftp/sftp_hosts_page.dart';
 import 'package:aves_model/aves_model.dart';
 
 class SettingsDefaults {
@@ -46,6 +47,7 @@ class SettingsDefaults {
     CountryListPage.routeName,
     TagListPage.routeName,
     ExplorerPage.routeName,
+    SftpHostsPage.routeName,
   ];
   static final bottomNavigationActions = [
     const AvesNavItem(route: CollectionPage.routeName),

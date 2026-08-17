@@ -31,6 +31,7 @@ import 'package:aves/model/vaults/vaults.dart';
 import 'package:aves/services/analysis_service.dart';
 import 'package:aves/services/common/image_op_events.dart';
 import 'package:aves/services/common/services.dart';
+import 'package:aves/sftp/model/sftp_host.dart';
 import 'package:aves/widgets/aves_app.dart';
 import 'package:aves_model/aves_model.dart';
 import 'package:collection/collection.dart';
@@ -89,6 +90,7 @@ abstract class CollectionSource with SourceBase, AlbumMixin, CountryMixin, Place
       }
     });
     vaults.lockStateChangeNotifier.addListener(_onVaultsChanged);
+    sftpHosts.addListener(_onSftpHostsChanged);
   }
 
   @mustCallSuper
@@ -99,6 +101,7 @@ abstract class CollectionSource with SourceBase, AlbumMixin, CountryMixin, Place
     stateNotifier.dispose();
     progressNotifier.dispose();
     vaults.lockStateChangeNotifier.removeListener(_onVaultsChanged);
+    sftpHosts.removeListener(_onSftpHostsChanged);
     _disposeAllEntries();
   }
 
@@ -634,6 +637,12 @@ abstract class CollectionSource with SourceBase, AlbumMixin, CountryMixin, Place
   void _onVaultsChanged() {
     final newlyVisibleFilters = vaults.vaultDirectories.whereNot(vaults.isLocked).map((v) => StoredAlbumFilter(v, null)).toSet();
     _onFilterVisibilityChanged(newlyVisibleFilters);
+  }
+
+  // adding/renaming/removing an SFTP host changes the album set without any entry change
+  void _onSftpHostsChanged() {
+    updateDirectories();
+    notifyAlbumsChanged();
   }
 }
 

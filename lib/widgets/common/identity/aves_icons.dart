@@ -4,6 +4,7 @@ import 'package:aves/model/entry/entry.dart';
 import 'package:aves/model/entry/extensions/multipage.dart';
 import 'package:aves/model/entry/extensions/props.dart';
 import 'package:aves/model/vaults/vaults.dart';
+import 'package:aves/sftp/sftp_media_service.dart';
 import 'package:aves/theme/icons.dart';
 import 'package:aves/widgets/common/extensions/build_context.dart';
 import 'package:aves/widgets/common/extensions/theme.dart';
@@ -338,6 +339,10 @@ class IconUtils {
   }) {
     size ??= IconTheme.of(context).size;
     Widget buildIcon(IconData icon) => Icon(icon, size: size);
+
+    // remote host albums have no `AlbumType` of their own (their synthetic
+    // paths resolve to `regular`), so they are matched by path instead
+    if (sftpMediaService.isSftpAlbumPath(albumPath)) return buildIcon(AIcons.sftp);
 
     switch (covers.effectiveAlbumType(albumPath)) {
       case .camera:

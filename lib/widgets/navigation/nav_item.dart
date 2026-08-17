@@ -18,6 +18,7 @@ import 'package:aves/widgets/navigation/drawer/tile.dart';
 import 'package:aves/widgets/navigation/nav_display.dart';
 import 'package:aves/widgets/search/collection_search_page_route.dart';
 import 'package:aves/widgets/settings/settings_page.dart';
+import 'package:aves/widgets/settings/sftp/sftp_hosts_page.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -72,6 +73,7 @@ class AvesNavItem extends Equatable {
       case AppDebugPage.routeName:
       case SearchPage.routeName:
       case SettingsPage.routeName:
+      case SftpHostsPage.routeName:
         return false;
       default:
         return true;
@@ -119,6 +121,8 @@ class AvesNavItem extends Equatable {
         return (_) => ExplorerPage(path: path);
       case SettingsPage.routeName:
         return (_) => const SettingsPage();
+      case SftpHostsPage.routeName:
+        return (_) => const SftpHostsPage();
       default:
         throw Exception('unknown route=$route');
     }

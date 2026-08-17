@@ -14,6 +14,7 @@ import 'package:aves/widgets/filter_grids/places_page.dart';
 import 'package:aves/widgets/filter_grids/tags_page.dart';
 import 'package:aves/widgets/home/home_page.dart';
 import 'package:aves/widgets/settings/settings_page.dart';
+import 'package:aves/widgets/settings/sftp/sftp_hosts_page.dart';
 import 'package:flutter/material.dart';
 
 class NavigationDisplay {
@@ -55,6 +56,8 @@ class NavigationDisplay {
         return MaterialLocalizations.of(context).searchFieldLabel;
       case SettingsPage.routeName:
         return l10n.settingsPageTitle;
+      case SftpHostsPage.routeName:
+        return l10n.settingsSftpHostsPageTitle;
       default:
         return route;
     }
@@ -82,6 +85,8 @@ class NavigationDisplay {
         return AIcons.search;
       case SettingsPage.routeName:
         return AIcons.settings;
+      case SftpHostsPage.routeName:
+        return AIcons.sftp;
       default:
         return null;
     }

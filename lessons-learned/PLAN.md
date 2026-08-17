@@ -27,10 +27,17 @@ One-line summary: working plan, milestone status, and handoff notes for the remo
 
 ## Current state
 - Session 1 complete: feature implemented, 158 tests green (85 sftp-specific), `dart analyze lib test` clean, debug APK built with the feature. See DECISIONS.md D4–D12 for the shape and departures.
+- Session 2 (2026-08-17, branch `claude/sftp-host-vault-access-3z78wz`, PR #3): first on-device test surfaced silent failures — fixed error feedback (D14) and restored play-flavor committed pubspec to unbreak CI analysis (D13). Repo owner enabled Dependency graph, so the dependency-review check now works.
+- Session 3 (2026-08-17, discoverability branch): drawer entry + always-visible host albums (D15), from the owner's first-use walkthrough.
 
 ## Follow-ups worth considering (not started)
+- **Tap-and-hold any left-drawer item → context menu to hide it** (owner request, 2026-08-17): general drawer ergonomics, not sftp-specific. Sits close to upstream code (drawer tiles + navigation settings), so weigh fork-maintenance cost before building.
+- **Remote directory browser/picker in the host form** (owner expected to browse from `/` and refine): needs a connection from the edit form before save; medium effort.
 - On-device validation against a real SFTP server (untested end to end — nothing here ran on a phone).
 - HEIC/AVIF embedded-preview extraction; progressive JPEG first-scan decode.
 - Refresh grid cell sharpness once full bytes arrive (thumbnail key is unchanged, so a soft EXIF preview stays until cache eviction).
 - Share/export actions on remote entries pass `sftp://` URIs to platform handlers and will fail; hide or materialize-then-share.
 - Non-JPEG entries have 0×0 dimensions until first full download; viewer lays out with aspect 1 until then.
+
+## Fork-maintenance stance (owner, 2026-08-17)
+Keep changes strategic: prefer self-contained additions (new files under `lib/sftp/`, `lib/widgets/settings/sftp/`) over edits to upstream files, so rebasing the fork onto upstream releases stays cheap. When an upstream file must change, keep the diff to a few lines at a clear seam (as with `_loadSftpEntries` beside `_loadVaultEntries`).
