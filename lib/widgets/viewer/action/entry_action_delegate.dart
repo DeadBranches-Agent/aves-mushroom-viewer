@@ -9,6 +9,7 @@ import 'package:aves/model/entry/extensions/location.dart';
 import 'package:aves/model/entry/extensions/metadata_edition.dart';
 import 'package:aves/model/entry/extensions/multipage.dart';
 import 'package:aves/model/entry/extensions/props.dart';
+import 'package:aves/model/entry/origins.dart';
 import 'package:aves/model/filters/filters.dart';
 import 'package:aves/model/settings/settings.dart';
 import 'package:aves/model/source/collection_lens.dart';
@@ -22,6 +23,7 @@ import 'package:aves/widgets/common/action_mixins/entry_editor.dart';
 import 'package:aves/widgets/common/action_mixins/entry_storage.dart';
 import 'package:aves/widgets/common/action_mixins/feedback.dart';
 import 'package:aves/widgets/common/action_mixins/permission_aware.dart';
+import 'package:aves/widgets/common/action_mixins/sftp_delete.dart';
 import 'package:aves/widgets/common/action_mixins/size_aware.dart';
 import 'package:aves/widgets/common/action_mixins/vault_aware.dart';
 import 'package:aves/widgets/common/extensions/build_context.dart';
@@ -46,7 +48,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
-class EntryActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAwareMixin, EntryEditorMixin, EntryStorageMixin, SingleEntryEditorMixin, VaultAwareMixin {
+class EntryActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAwareMixin, EntryEditorMixin, EntryStorageMixin, SingleEntryEditorMixin, VaultAwareMixin, SftpEntryDeleteMixin {
   final AvesEntry mainEntry, pageEntry;
   final CollectionLens? collection;
   final EntryInfoActionDelegate _metadataActionDelegate = EntryInfoActionDelegate();
@@ -74,6 +76,8 @@ class EntryActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAwareMix
         case .toggleFavourite:
           return collection != null;
         case .delete:
+          // remote sftp entries are read-only but can be deleted on their server
+          return canWrite && (targetEntry.canEdit || targetEntry.origin == EntryOrigins.sftp);
         case .rename:
         case .move:
           return canWrite && targetEntry.canEdit;
@@ -422,6 +426,14 @@ class EntryActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAwareMix
   }
 
   Future<void> _delete(BuildContext context, AvesEntry targetEntry) async {
+    if (targetEntry.origin == EntryOrigins.sftp) {
+      final deleted = await doDeleteSftp(context, {targetEntry});
+      if (deleted.isNotEmpty) {
+        EntryDeletedNotification(deleted).dispatch(context);
+      }
+      return;
+    }
+
     final vault = vaults.getVault(targetEntry.directory);
     final enableBin = vault?.useBin ?? settings.enableBin;
 

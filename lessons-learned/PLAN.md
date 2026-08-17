@@ -4,7 +4,7 @@ One-line summary: working plan, milestone status, and handoff notes for the remo
 
 ## How to resume in a new session
 1. Read this file, `DECISIONS.md`, and `aves-media-pipeline.md` (seam analysis).
-2. `git log --oneline -15` on branch `claude/aves-sftp-image-source-4px7wz` to see what landed.
+2. `git log --oneline -15` on the current feature branch (session 4: `claude/sftp-delete-feature-5x31zb`) to see what landed.
 3. Continue at the first unchecked milestone below. Update checkboxes and the "state" note as you go, and commit doc updates together with code.
 
 ## Build facts (verified)
@@ -29,11 +29,25 @@ One-line summary: working plan, milestone status, and handoff notes for the remo
 - Session 1 complete: feature implemented, 158 tests green (85 sftp-specific), `dart analyze lib test` clean, debug APK built with the feature. See DECISIONS.md D4–D12 for the shape and departures.
 - Session 2 (2026-08-17, branch `claude/sftp-host-vault-access-3z78wz`, PR #3): first on-device test surfaced silent failures — fixed error feedback (D14) and restored play-flavor committed pubspec to unbreak CI analysis (D13). Repo owner enabled Dependency graph, so the dependency-review check now works.
 - Session 3 (2026-08-17, discoverability branch): drawer entry + always-visible host albums (D15), from the owner's first-use walkthrough.
+- Session 4 (2026-08-17, branch `claude/sftp-delete-feature-5x31zb`): remote delete via the standard delete UI, with a remote-`.trash` toggle (D16–D18). dartssh2 untouched (`remove`/`rename`/`mkdir` already existed).
+
+## Session 4 — remote delete (branch `claude/sftp-delete-feature-5x31zb`)
+Goal: deleting sftp entries through the standard Aves delete UI (viewer trash quick action; thumbnail multi-select trash) issues remote SFTP operations. A toggle in the Remote SFTP settings section chooses between permanent `remove` and `rename` into a `.trash` subdirectory of the host directory (defaults to `.trash`, D17).
+
+- [x] S4-M1 Map the delete UI flow (visibility gating + dispatch in viewer and selection delegates, vault delete path as the model) — see D16; key fact: Kotlin provider silently no-ops on `sftp://`.
+- [x] S4-M2 Remote delete op `SftpMediaService.deleteEntries`: group by host, `remove` or `mkdir('.trash')`+`rename` (timestamp-suffix retry on collision), per-entry failure tracking, entry removal from source/DB/registry.
+- [x] S4-M3 Settings toggle `SettingsTileSftpDeleteToTrash` backed by `SftpPrefs.deleteToRemoteTrash`, l10n strings in app_en.arb.
+- [x] S4-M4 UI seams: viewer `isVisible` `.delete` case split to allow sftp origin; both delegates' `_delete` intercept sftp entries via `SftpEntryDeleteMixin` (`lib/widgets/common/action_mixins/sftp_delete.dart`) before bin routing.
+- [x] S4-M5 Tests: 160 green (`test/sftp/prefs_test.dart` added), `dart analyze lib test` clean.
+- [ ] S4-M6 Debug APK builds; push; draft PR; docs updated.
+
+dartssh2: no changes expected (`remove`/`rename`/`mkdir` already exist on `SftpClient`); branch exists on origin already.
 
 ## Follow-ups worth considering (not started)
 - **Tap-and-hold any left-drawer item → context menu to hide it** (owner request, 2026-08-17): general drawer ergonomics, not sftp-specific. Sits close to upstream code (drawer tiles + navigation settings), so weigh fork-maintenance cost before building.
 - **Remote directory browser/picker in the host form** (owner expected to browse from `/` and refine): needs a connection from the edit form before save; medium effort.
 - On-device validation against a real SFTP server (untested end to end — nothing here ran on a phone).
+- Remote `.trash` management from the app (list / restore / empty): deliberately out of scope for the delete feature; trashed files are only reachable server-side.
 - HEIC/AVIF embedded-preview extraction; progressive JPEG first-scan decode.
 - Refresh grid cell sharpness once full bytes arrive (thumbnail key is unchanged, so a soft EXIF preview stays until cache eviction).
 - Share/export actions on remote entries pass `sftp://` URIs to platform handlers and will fail; hide or materialize-then-share.

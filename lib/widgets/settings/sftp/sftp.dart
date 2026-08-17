@@ -29,10 +29,30 @@ class SftpSection extends SettingsSection {
   Future<List<SettingsTile>> tiles(BuildContext context) async {
     return [
       SettingsTileSftpHosts(),
+      SettingsTileSftpDeleteToTrash(),
       SettingsTileSftpPrefetchAhead(),
       SettingsTileSftpPrefetchBehind(),
     ];
   }
+}
+
+class SettingsTileSftpDeleteToTrash extends SettingsTile {
+  @override
+  List<String> get settingKeys => []; // stored in the sftp module, not app settings
+
+  @override
+  String title(BuildContext context) => context.l10n.settingsSftpDeleteToTrashTile;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: sftpPrefs,
+    builder: (context, child) => SwitchListTile(
+      value: sftpPrefs.deleteToRemoteTrash,
+      onChanged: (v) => sftpPrefs.deleteToRemoteTrash = v,
+      title: Text(title(context)),
+      subtitle: Text(context.l10n.settingsSftpDeleteToTrashSubtitle),
+    ),
+  );
 }
 
 class SettingsTileSftpHosts extends SettingsTile {

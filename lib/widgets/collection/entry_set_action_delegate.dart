@@ -10,6 +10,7 @@ import 'package:aves/model/entry/extensions/location.dart';
 import 'package:aves/model/entry/extensions/metadata_edition.dart';
 import 'package:aves/model/entry/extensions/multipage.dart';
 import 'package:aves/model/entry/extensions/props.dart';
+import 'package:aves/model/entry/origins.dart';
 import 'package:aves/model/entry/sort.dart';
 import 'package:aves/model/favourites.dart';
 import 'package:aves/model/filters/container/dynamic_album.dart';
@@ -41,6 +42,7 @@ import 'package:aves/widgets/common/action_mixins/entry_editor.dart';
 import 'package:aves/widgets/common/action_mixins/entry_storage.dart';
 import 'package:aves/widgets/common/action_mixins/feedback.dart';
 import 'package:aves/widgets/common/action_mixins/permission_aware.dart';
+import 'package:aves/widgets/common/action_mixins/sftp_delete.dart';
 import 'package:aves/widgets/common/action_mixins/size_aware.dart';
 import 'package:aves/widgets/common/action_mixins/vault_aware.dart';
 import 'package:aves/widgets/common/extensions/build_context.dart';
@@ -67,7 +69,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
-class EntrySetActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAwareMixin, EntryEditorMixin, EntryStorageMixin, VaultAwareMixin {
+class EntrySetActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAwareMixin, EntryEditorMixin, EntryStorageMixin, VaultAwareMixin, SftpEntryDeleteMixin {
   bool isVisible(
     EntrySetAction action, {
     required AppMode appMode,
@@ -312,6 +314,16 @@ class EntrySetActionDelegate with FeedbackMixin, PermissionAwareMixin, SizeAware
 
   Future<void> _delete(BuildContext context) async {
     final entries = _getTargetItems(context);
+
+    // remote sftp entries cannot go through the platform delete op,
+    // so they are deleted on their server first, separately
+    final sftpEntries = entries.where((entry) => entry.origin == EntryOrigins.sftp).toSet();
+    if (sftpEntries.isNotEmpty) {
+      entries.removeAll(sftpEntries);
+      await doDeleteSftp(context, sftpEntries);
+      if (entries.isEmpty) return;
+    }
+
     final byBinUsage = groupBy<AvesEntry, bool>(entries, (entry) {
       final details = vaults.getVault(entry.directory);
       return details?.useBin ?? settings.enableBin;
