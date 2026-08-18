@@ -34,8 +34,9 @@ class _SftpCacheEntry {
   final SftpCacheVariant variant;
   final File file;
   final int sizeBytes;
+  DateTime? lastTouched;
 
-  const _SftpCacheEntry({
+  _SftpCacheEntry({
     required this.hostId,
     required this.variant,
     required this.file,
@@ -58,6 +59,8 @@ class SftpCache {
 
   static const _tempExtension = '.tmp';
 
+  int _tempCounter = 0;
+  
   // byte budget per variant, overridable for tests
   final Map<SftpCacheVariant, int> budgetBytes = {
     SftpCacheVariant.thumbnail: thumbnailBudgetBytes,
@@ -77,45 +80,69 @@ class SftpCache {
     _entries.clear();
     _variantSizes.clear();
 
-    final found = <({_SftpCacheEntry entry, DateTime modified})>[];
-    for (final variant in SftpCacheVariant.values) {
-      final variantDir = Directory(p.join(_sftpDir, variant.name));
-      if (!await variantDir.exists()) continue;
+    final root = Directory(_sftpDir);
+    if (!await root.exists()) return;
 
-      for (final hostDir in await variantDir.list().toList()) {
-        if (hostDir is! Directory) continue;
-
-        final hostId = p.basename(hostDir.path);
-        for (final file in await hostDir.list().toList()) {
-          if (file is! File || file.path.endsWith(_tempExtension)) continue;
-
-          final stat = await file.stat();
-          found.add((
-            entry: _SftpCacheEntry(
-              hostId: hostId,
-              variant: variant,
-              file: file,
-              sizeBytes: stat.size,
-            ),
-            modified: stat.modified,
-          ));
-        }
+    final candidates = <File>[];
+    final orphans = <File>[];
+    await for (final entity in root.list(recursive: true)) {
+      if (entity is! File) continue;
+      if (entity.path.endsWith(_tempExtension)) {
+        orphans.add(entity);
+      } else {
+        candidates.add(entity);
       }
+    }
+    
+    // leftovers from a crash between write and rename; outside any budget
+    await Future.wait(orphans.map((f) => f.delete().catchError((_) => f)));
+
+    final found = <({_SftpCacheEntry entry, DateTime modified})>[];
+    for (final batch in candidates.slices(256)) {
+      final scanned = await Future.wait(batch.map(_scanEntity));
+      found.addAll(scanned.nonNulls);
     }
 
     mergeSort(found, compare: (a, b) => a.modified.compareTo(b.modified));
     found.forEach((v) => _index(v.entry));
   }
 
-  // cached file for this key, or null; touches LRU order on hit
+  // returns null for files at the wrong depth or under an unknown variant
+  Future<({_SftpCacheEntry entry, DateTime modified})?> _scanEntity(File file) async {
+    // expected: <variant>/<hostId>/<hash>
+    final parts = p.split(p.relative(file.path, from: _sftpDir));
+    if (parts.length != 3) return null;
+    final variant = SftpCacheVariant.values.asNameMap()[parts[0]];
+    if (variant == null) return null;
+
+    final stat = await file.stat();
+    return (
+      entry: _SftpCacheEntry(hostId: parts[1], variant: variant, file: file, sizeBytes: stat.size),
+      modified: stat.modified,
+    );
+  }
+
+  // touching mtime is only for LRU persistence across restarts; coarse is fine
+  static const _touchInterval = Duration(minutes: 10);
+
   File? get(SftpCacheKey key) {
     final path = _pathOf(key);
     final entry = _entries.remove(path);
     if (entry == null) return null;
 
     _entries[path] = entry;
-    entry.file.setLastModifiedSync(DateTime.now());
+    _touch(entry);
     return entry.file;
+  }
+
+  void _touch(_SftpCacheEntry entry) {
+    final now = DateTime.now();
+    final last = entry.lastTouched;
+    if (last != null && now.difference(last) < _touchInterval) return;
+
+    entry.lastTouched = now;
+    // fire and forget: a lost touch only slightly misorders LRU after restart
+    entry.file.setLastModified(now).catchError((_) {});
   }
 
   // writes bytes (atomically: temp file + rename), updates the index, then
@@ -125,7 +152,7 @@ class SftpCache {
     final file = File(path);
     await file.parent.create(recursive: true);
 
-    final tempFile = File('$path$_tempExtension');
+    final tempFile = File('$path.${_tempCounter++}$_tempExtension');
     await tempFile.writeAsBytes(bytes, flush: true);
     await tempFile.rename(path);
 
@@ -144,10 +171,16 @@ class SftpCache {
   }
 
   // current on-disk bytes for this host, both variants combined
-  int sizeForHost(String hostId) => _entries.values.where((v) => v.hostId == hostId).fold(0, (sum, v) => sum + v.sizeBytes);
+  int sizeForHost(String hostId) =>
+      _entries.values.where((v) => v.hostId == hostId).map((v) => v.sizeBytes).sum;
 
   Future<void> clearHost(String hostId) async {
-    _entries.values.where((v) => v.hostId == hostId).toList().forEach(_unindex);
+    // unindex before deleting: if a delete fails, the index under-counts and
+    // `init` heals it on next launch, rather than over-counting stale files
+    final stale = _entries.values.where((v) => v.hostId == hostId).toList();
+    for (final entry in stale) {
+      _unindex(entry);
+    }
 
     for (final variant in SftpCacheVariant.values) {
       final hostDir = Directory(p.join(_sftpDir, variant.name, hostId));
@@ -181,7 +214,11 @@ class SftpCache {
       if (victim == null) return;
 
       _unindex(victim);
-      await victim.file.delete();
+      try {
+        await victim.file.delete();
+      } on FileSystemException {
+        // already gone; the index is already correct
+      }
     }
   }
 }
