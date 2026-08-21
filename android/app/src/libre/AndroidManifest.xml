@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- `app_name` is also defined in ~56 locale-qualified `values-*` folders of the
+     `main` source set, and this flavor only overrides the unqualified one, so a
+     device set to any of those locales would still resolve the label to "Aves".
+     The launcher name is taken from the application label, so pin it here to a
+     literal, which no locale-qualified resource can win over. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:label="Mushroom Viewer"
+        tools:replace="android:label" />
+
+</manifest>
