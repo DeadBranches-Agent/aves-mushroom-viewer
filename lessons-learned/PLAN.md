@@ -1,6 +1,6 @@
-# SFTP image source — milestone plan and session handoff
+# Milestone plan and session handoff
 
-One-line summary: working plan, milestone status, and handoff notes for the remote SFTP image source feature, maintained across sessions.
+One-line summary: working plan, milestone status, and handoff notes for this fork's workstreams (sessions 1-4: the remote SFTP image source; session 5: the release APK workflow), maintained across sessions.
 
 ## How to resume in a new session
 1. Read this file, `DECISIONS.md`, and `aves-media-pipeline.md` (seam analysis).
@@ -30,6 +30,7 @@ One-line summary: working plan, milestone status, and handoff notes for the remo
 - Session 2 (2026-08-17, branch `claude/sftp-host-vault-access-3z78wz`, PR #3): first on-device test surfaced silent failures — fixed error feedback (D14) and restored play-flavor committed pubspec to unbreak CI analysis (D13). Repo owner enabled Dependency graph, so the dependency-review check now works.
 - Session 3 (2026-08-17, discoverability branch): drawer entry + always-visible host albums (D15), from the owner's first-use walkthrough.
 - Session 4 (2026-08-17, branch `claude/sftp-delete-feature-5x31zb`): remote delete via the standard delete UI, with a remote-`.trash` toggle (D16–D18). dartssh2 untouched (`remove`/`rename`/`mkdir` already existed).
+- Session 5 (2026-08-21, branch `claude/avis-android-signed-apk-kc1w04`): release APK workflow — not an SFTP change. See the Session 5 section below and `apk-release-versioning.md`.
 
 ## Session 4 — remote delete (branch `claude/sftp-delete-feature-5x31zb`)
 Goal: deleting sftp entries through the standard Aves delete UI (viewer trash quick action; thumbnail multi-select trash) issues remote SFTP operations. A toggle in the Remote SFTP settings section chooses between permanent `remove` and `rename` into a `.trash` subdirectory of the host directory (defaults to `.trash`, D17).
@@ -42,6 +43,19 @@ Goal: deleting sftp entries through the standard Aves delete UI (viewer trash qu
 - [x] S4-M6 Debug APK builds (`build/app/outputs/flutter-apk/app-libre-debug.apk`); pushed; draft PR #5; docs updated.
 
 dartssh2: no changes expected (`remove`/`rename`/`mkdir` already exist on `SftpClient`); branch exists on origin already.
+
+## Session 5 — signed release APK workflow (branch `claude/avis-android-signed-apk-kc1w04`)
+Goal: a manually triggered GitHub workflow that builds a signed production `libre` APK of the trunk, versioned from git tags. Design and traps: `apk-release-versioning.md`; decisions D19–D22.
+
+- [x] S5-M1 Discovery: Gradle is Kotlin (`android/app/build.gradle.kts`, module `:app` under the `android/` Gradle root); `defaultConfig` assigned `flutter.versionCode`/`flutter.versionName`, which beat `-P` properties silently and had to be replaced; repo has **zero tags**.
+- [x] S5-M2 Gradle reads `verCode`/`verName` properties, falling back to the pubspec version (D21).
+- [x] S5-M3 `.github/workflows/release-apk.yml`: `workflow_dispatch` with a `minor`/`major` bump input, deep checkout pinned to `develop`, version computed from the latest `vMAJOR.MINOR` tag, base64 keystore decoded to `$RUNNER_TEMP`, `scripts/apply_flavor_libre.sh` + `gen-l10n`, signed release build, artifact upload, tag pushed last.
+- [x] S5-M4 Bump logic verified locally against no-tags and against throwaway `v1.9`/`v1.10` (yields `1.11`, not `1.10`).
+
+Open items for the next session:
+- **Repository secrets are not yet set** (`AVES_KEYSTORE_BASE64`, `AVES_STORE_PASSWORD`, `AVES_KEY_ALIAS`, `AVES_KEY_PASSWORD`). The workflow fails fast with a clear error until they exist.
+- **No seed tag.** The first run produces `v0.1`; create a seed tag first if a different starting point is wanted.
+- `versionCode` starts at 1 (`github.run_number`), below the pubspec's current `+173`. Harmless because the release `libre` applicationId (`deckers.thibault.aves.libre`) differs from the sideloaded debug one (`….libre.debug`), but an installed *release* build would block a lower-code upgrade. Add a constant offset if that ever bites.
 
 ## Follow-ups worth considering (not started)
 - **Tap-and-hold any left-drawer item → context menu to hide it** (owner request, 2026-08-17): general drawer ergonomics, not sftp-specific. Sits close to upstream code (drawer tiles + navigation settings), so weigh fork-maintenance cost before building.

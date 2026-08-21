@@ -63,8 +63,13 @@ android {
         applicationId = packageName
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        // Version comes from the release workflow via Gradle properties
+        // (passed as `ORG_GRADLE_PROJECT_verCode` / `ORG_GRADLE_PROJECT_verName`,
+        // since `flutter build` does not forward `-P` flags to Gradle).
+        // Without them, fall back to the pubspec version, so local and
+        // debug/profile builds behave exactly as before.
+        versionCode = (findProperty("verCode") as String?)?.toInt() ?: flutter.versionCode
+        versionName = (findProperty("verName") as String?) ?: flutter.versionName
         manifestPlaceholders["googleApiKey"] = keystoreProperties["googleApiKey"] ?: "NONE"
         multiDexEnabled = true
     }

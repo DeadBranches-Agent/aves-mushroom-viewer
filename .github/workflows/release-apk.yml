@@ -1,0 +1,129 @@
+name: Release APK
+
+# Manually triggered build of a signed, production `libre` APK of the trunk.
+#
+# Versioning:
+#   versionName = MAJOR.MINOR, derived from the latest `vMAJOR.MINOR` git tag
+#   versionCode = github.run_number
+# The two are deliberately unrelated: `versionCode` only has to increase, so a
+# major bump resetting the minor to 0 cannot make it walk backwards.
+# The tag is pushed only after a successful build *and* artifact upload, so a
+# failed run never consumes a version number.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        type: choice
+        options: [ minor, major ]
+        default: minor
+
+# Declare default permissions as read only.
+permissions: read-all
+
+jobs:
+  build_release:
+    name: Signed libre APK
+    runs-on: ubuntu-latest
+    permissions:
+      # required to push the version tag using the default GITHUB_TOKEN
+      contents: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      # Building relies on the Android Gradle plugin,
+      # which requires a modern Java version (not the default one).
+      - name: Set up JDK for Android Gradle plugin
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # `develop` is this repository's trunk; there is no `main` branch.
+      # Pinning the ref builds the trunk no matter which branch the run was
+      # dispatched from, and is the commit the version tag lands on.
+      # `fetch-depth: 0` is load-bearing: tags are not fetched on a shallow
+      # clone, and without them the version resets to 0.1 on every run.
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      # `--sort=-v:refname` is git's version sort and it is load-bearing:
+      # a lexical sort ranks `v1.9` above `v1.10` and the counter silently
+      # walks backwards.
+      - name: Compute next version
+        id: ver
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -eu
+          latest=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)
+          latest=${latest:-v0.0}
+          rest=${latest#v}
+          minor=${rest##*.}
+          major=${rest%%.*}
+          if [ "$BUMP" = major ]; then
+            major=$((major + 1)); minor=0
+          else
+            minor=$((minor + 1))
+          fi
+          echo "name=$major.$minor" >> "$GITHUB_OUTPUT"
+
+      # Fail loudly on a missing keystore: the Gradle build otherwise just
+      # prints "Skip release signing as it is not configured" and hands back
+      # an unsigned APK.
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.AVES_KEYSTORE_BASE64 }}
+        run: |
+          set -eu
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "::error::Secret AVES_KEYSTORE_BASE64 is not set, so the APK could not be signed."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      # Rewrites the pubspec to the F-Droid plugin set (`aves_services_none`
+      # + `aves_report_console`), and runs `clean` + `pub get` itself.
+      - name: Select libre flavor
+        run: |
+          scripts/apply_flavor_libre.sh
+          ./flutterw gen-l10n
+
+      - name: Build signed release APK
+        env:
+          # Gradle reads these as the `verName` / `verCode` project properties.
+          # They travel as environment variables rather than `-P` flags because
+          # `flutter build` does not forward `-P` through to Gradle.
+          ORG_GRADLE_PROJECT_verName: ${{ steps.ver.outputs.name }}
+          ORG_GRADLE_PROJECT_verCode: ${{ github.run_number }}
+          AVES_STORE_FILE: ${{ runner.temp }}/release.jks
+          AVES_STORE_PASSWORD: ${{ secrets.AVES_STORE_PASSWORD }}
+          AVES_KEY_ALIAS: ${{ secrets.AVES_KEY_ALIAS }}
+          AVES_KEY_PASSWORD: ${{ secrets.AVES_KEY_PASSWORD }}
+          AVES_GOOGLE_API_KEY: 'NONE'
+        run: ./flutterw build apk --release -t lib/main_libre.dart --flavor libre
+
+      - name: Remove signing keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aves-libre-release-v${{ steps.ver.outputs.name }}
+          path: build/app/outputs/apk/libre/release/*.apk
+          if-no-files-found: error
+
+      # Last, so that a failed build or upload does not consume a version
+      # number. Lightweight tag, so no `git config user.*` is needed.
+      - name: Tag the release
+        run: |
+          git tag "v${{ steps.ver.outputs.name }}"
+          git push origin "v${{ steps.ver.outputs.name }}"
