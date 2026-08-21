@@ -12,7 +12,6 @@ on:
           - izzy
           - libre
 
-# Declare default permissions as read only.
 permissions: read-all
 
 jobs:
