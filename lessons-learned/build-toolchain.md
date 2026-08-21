@@ -3,7 +3,10 @@
 One-line summary: exact steps to reproduce the debug build environment from a clean container, with the gotchas that cost time.
 
 1. Flutter is a git submodule: `git submodule update --init --depth 1 .flutter` works (GitHub allows fetching the pinned SHA directly); `./flutterw --version` then bootstraps the Dart SDK through the proxy without issue.
-2. Android SDK is not preinstalled. Install cmdline-tools into `$HOME/android-sdk` (note: `$HOME` is `/root` here), accept licenses, then install `platform-tools`, **`platforms;android-37.0`** (the API 37 platform package is named `android-37.0`, not `android-37` — a plain `android-37` does not exist) and `build-tools;37.0.0`.
+2. Android SDK is not preinstalled. Install cmdline-tools into `$HOME/android-sdk` (note: `$HOME` is `/root` here), then install `platform-tools`, **`platforms;android-37.0`** (the API 37 platform package is named `android-37.0`, not `android-37` — a plain `android-37` does not exist) and `build-tools;37.0.0`.
+   **Correction (2026-08-21): classic `sdkmanager` is gone.** Current cmdline-tools (`commandlinetools-linux-16111833_latest.zip`) ship an `android` CLI in its place; `sdkmanager --licenses` just prints "Warning: The --licenses option is no longer needed" and does nothing. Use slash-separated package paths instead of the classic semicolon ones:
+   `android sdk install "platform-tools" "platforms/android-37.0" "build-tools/37.0.0"`
+   The resulting directory layout is identical to the classic one (`platforms/android-37.0/`, `build-tools/37.0.0/`, `licenses/android-sdk-license`), so every later step below applies unchanged. Google's `repository2-3.xml` lists the current cmdline-tools version if the zip name has moved on again.
 3. AGP expects `platforms/android-37`; the package installs as `android-37.0`, so symlink: `ln -s $HOME/android-sdk/platforms/android-37.0 $HOME/android-sdk/platforms/android-37`. Gradle prints a warning about the "inconsistent location" but builds fine.
 4. Write `android/local.properties` with `sdk.dir` and `flutter.sdk` (absolute paths).
 5. `scripts/apply_flavor_libre.sh` before building (rewrites pubspec to `aves_services_none` + `aves_report_console`, runs clean + pub get). The **committed** pubspec state is play-flavor (see D13) — never commit the pubspec with a flavor script applied; CI analysis breaks under libre-committed state.

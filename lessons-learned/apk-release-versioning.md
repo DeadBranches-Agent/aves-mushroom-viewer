@@ -36,5 +36,14 @@ Verify the property path with the built APK's own metadata, never by reading the
 
 Related: `actions/checkout` must set `fetch-depth: 0`. Tags are not fetched on a shallow clone, and without them every run reads "no tags" and produces `0.1` forever.
 
+## Verified end to end (2026-08-21)
+A full signed `libre` release build with `ORG_GRADLE_PROJECT_verName=9.9` / `ORG_GRADLE_PROJECT_verCode=999` and a throwaway keystore produced:
+
+- `output-metadata.json`: `"versionCode": 999`, `"versionName": "9.9"` — the properties win, not the pubspec's 173 / 1.14.9.
+- `aapt2 dump badging`: `package: name='deckers.thibault.aves.libre' versionCode='999' versionName='9.9'`.
+- `apksigner verify`: `Verifies`, v2 scheme, 1 signer, DN matching the throwaway key. Output is `app-libre-release.apk`, not `-unsigned.apk`.
+
+Two things that look like faults and are not: **v1 (JAR) signing is off** — AGP omits it when `minSdkVersion >= 24` (it is 24 here) because v2 covers those devices; and the universal APK is **~152 MiB** because it carries `armeabi-v7a` + `arm64-v8a` + `x86_64`. Upstream's `release.yml` uses `--split-per-abi` for libre to get ~50 MiB per ABI.
+
 ## State at introduction (2026-08-21)
 The repo has **zero git tags**, so the first run produces `v0.1` (or `v1.0` for a major bump) unless a seed tag is created first.
