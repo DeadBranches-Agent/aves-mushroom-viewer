@@ -1,6 +1,6 @@
 # Milestone plan and session handoff
 
-One-line summary: working plan, milestone status, and handoff notes for this fork's workstreams (sessions 1-4: the remote SFTP image source; session 5: the release APK workflow), maintained across sessions.
+One-line summary: working plan, milestone status, and handoff notes for this fork's workstreams (sessions 1-4: the remote SFTP image source; session 5: the release APK workflow; session 6: the app identity), maintained across sessions.
 
 ## How to resume in a new session
 1. Read this file, `DECISIONS.md`, and `aves-media-pipeline.md` (seam analysis).
@@ -31,6 +31,7 @@ One-line summary: working plan, milestone status, and handoff notes for this for
 - Session 3 (2026-08-17, discoverability branch): drawer entry + always-visible host albums (D15), from the owner's first-use walkthrough.
 - Session 4 (2026-08-17, branch `claude/sftp-delete-feature-5x31zb`): remote delete via the standard delete UI, with a remote-`.trash` toggle (D16–D18). dartssh2 untouched (`remove`/`rename`/`mkdir` already existed).
 - Session 5 (2026-08-21, branch `claude/avis-android-signed-apk-kc1w04`): release APK workflow — not an SFTP change. See the Session 5 section below and `apk-release-versioning.md`.
+- Session 6 (2026-08-21, branch `claude/aves-mushroom-viewer-relationship-j7m0ul`): fork app identity — `applicationId` `viewer.mushroom.moo`, launcher name "Mushroom Viewer" (D23-D25, `app-identity.md`). Not an SFTP change.
 
 ## Session 4 — remote delete (branch `claude/sftp-delete-feature-5x31zb`)
 Goal: deleting sftp entries through the standard Aves delete UI (viewer trash quick action; thumbnail multi-select trash) issues remote SFTP operations. A toggle in the Remote SFTP settings section chooses between permanent `remove` and `rename` into a `.trash` subdirectory of the host directory (defaults to `.trash`, D17).
@@ -55,7 +56,16 @@ Goal: a manually triggered GitHub workflow that builds a signed production `libr
 Open items for the next session:
 - **Repository secrets are not yet set** (`AVES_KEYSTORE_BASE64`, `AVES_STORE_PASSWORD`, `AVES_KEY_ALIAS`, `AVES_KEY_PASSWORD`). The workflow fails fast with a clear error until they exist.
 - **No seed tag.** The first run produces `v0.1`; create a seed tag first if a different starting point is wanted.
-- `versionCode` starts at 1 (`github.run_number`), below the pubspec's current `+173`. Harmless because the release `libre` applicationId (`deckers.thibault.aves.libre`) differs from the sideloaded debug one (`….libre.debug`), but an installed *release* build would block a lower-code upgrade. Add a constant offset if that ever bites.
+- `versionCode` starts at 1 (`github.run_number`), below the pubspec's current `+173`. Harmless: the release applicationId (`viewer.mushroom.moo`, since D23/D24) differs from the sideloaded debug one (`viewer.mushroom.moo.debug`) and has no install history at all, but an installed *release* build would block a lower-code upgrade. Add a constant offset if that ever bites.
+
+## Session 6 — fork app identity (branch `claude/aves-mushroom-viewer-relationship-j7m0ul`)
+Goal: the shipped APK installs as its own app beside upstream Aves instead of colliding with it. Started as a question about the fork/upstream relationship; the answer was that the release APK carried upstream's F-Droid identity and could not be installed at all next to it. Traps and reasoning: `app-identity.md`; decisions D23-D25.
+
+- [x] S6-M1 `applicationId = "viewer.mushroom.moo"` via a new `appId` val, `namespace`/`packageName` left as the source package; `.libre` suffix dropped.
+- [x] S6-M2 Launcher name "Mushroom Viewer": flavor `values/strings.xml` plus a literal `android:label` with `tools:replace` in a new `android/app/src/libre/AndroidManifest.xml` (locale-qualified `app_name` in `main` otherwise wins).
+- [x] S6-M3 Verified on a built libre debug APK with `aapt2 dump badging` (package name + application label) and the variant IDs Gradle prints at configuration time.
+
+Note for the next release: the first workflow run after this change produces an APK that installs alongside — not over — any previously sideloaded fork build, with empty SFTP state (hosts and pinned host keys have to be re-added). Uninstall the old one manually.
 
 ## Follow-ups worth considering (not started)
 - **Tap-and-hold any left-drawer item → context menu to hide it** (owner request, 2026-08-17): general drawer ergonomics, not sftp-specific. Sits close to upstream code (drawer tiles + navigation settings), so weigh fork-maintenance cost before building.

@@ -8,7 +8,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// The Kotlin/Java package of the app sources, and the `namespace` below.
+// Deliberately left as upstream's: it is the package every source file declares,
+// and it is unrelated to the ID the app is installed under.
 val packageName = "deckers.thibault.aves"
+
+// The installed application ID. This fork ships its own app identity: upstream's
+// F-Droid build is `deckers.thibault.aves.libre`, and an APK reusing that ID but
+// signed with a different key cannot be installed beside it or over it.
+val appId = "viewer.mushroom.moo"
 
 // Keys
 
@@ -60,7 +68,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = packageName
+        applicationId = appId
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Version comes from the release workflow via Gradle properties
@@ -107,7 +115,9 @@ android {
             // check offending libraries with `fdroidserver`
             // cf https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/
             dimension = "store"
-            applicationIdSuffix = ".libre"
+            // No `applicationIdSuffix` here (upstream has ".libre"): upstream needs it so
+            // its F-Droid build can coexist with its Play build, while this fork only ever
+            // ships `libre`, and `appId` already makes it a distinct app.
         }
     }
 
