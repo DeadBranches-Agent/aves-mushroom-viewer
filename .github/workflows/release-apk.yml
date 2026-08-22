@@ -19,7 +19,6 @@ on:
         options: [ minor, major ]
         default: minor
 
-# Declare default permissions as read only.
 permissions: read-all
 
 jobs:
@@ -46,17 +45,14 @@ jobs:
       # `develop` is this repository's trunk; there is no `main` branch.
       # Pinning the ref builds the trunk no matter which branch the run was
       # dispatched from, and is the commit the version tag lands on.
-      # `fetch-depth: 0` is load-bearing: tags are not fetched on a shallow
-      # clone, and without them the version resets to 0.1 on every run.
+      # `fetch-depth: 0` without it the version resets to 0.1 on every run.
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: develop
           fetch-depth: 0
 
-      # `--sort=-v:refname` is git's version sort and it is load-bearing:
-      # a lexical sort ranks `v1.9` above `v1.10` and the counter silently
-      # walks backwards.
+      # `--sort=-v:refname` is git's version sort ranks `v1.9` above `v1.10`
       - name: Compute next version
         id: ver
         env:
@@ -75,9 +71,6 @@ jobs:
           fi
           echo "name=$major.$minor" >> "$GITHUB_OUTPUT"
 
-      # Fail loudly on a missing keystore: the Gradle build otherwise just
-      # prints "Skip release signing as it is not configured" and hands back
-      # an unsigned APK.
       - name: Decode signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.AVES_KEYSTORE_BASE64 }}
@@ -121,8 +114,7 @@ jobs:
           path: build/app/outputs/apk/libre/release/*.apk
           if-no-files-found: error
 
-      # Last, so that a failed build or upload does not consume a version
-      # number. Lightweight tag, so no `git config user.*` is needed.
+      # A failed build or upload does not consume a version number.
       - name: Tag the release
         run: |
           git tag "v${{ steps.ver.outputs.name }}"
